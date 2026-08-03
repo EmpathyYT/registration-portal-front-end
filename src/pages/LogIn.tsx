@@ -46,12 +46,6 @@ const LogIn = () => {
           </button>
         </form>
 
-        <div className="mt-3 text-center">
-          <a href="/forgot-password" className="text-decoration-none">
-            Forgot Password?
-          </a>
-        </div>
-
       </div>
     </div>
   )
