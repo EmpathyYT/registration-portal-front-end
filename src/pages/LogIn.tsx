@@ -1,54 +1,38 @@
-import { useState } from "react";
+//Mohammed coded this
+import React from 'react';
 
-const LogIn = () => {
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const handleSubmit =(e)=>{
-    e.preventDefault();
-    // logic here
-    console.log("Email:", email, "Password:", password);
-    }
+//Ammar coded this
+import LoginForm from '../components/auth/LoginForm';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
+//Mohammed coded this
+export default function LogIn() {
+    return (
+        //Ammar coded this
+        <div className="d-flex align-items-center justify-content-center vh-100" style={{ backgroundColor: '#f4f7f6' }}>
+            <div className="card shadow-lg p-5 border-0 rounded-4" style={{ maxWidth: '420px', width: '100%' }}>
+                <div className="text-center mb-4">
 
-  return (
-<div className="d-flex justify-content-center align-items-center vh-100 bg-light">
-      <div className="card shadow p-4" style={{ width: "350px" }}>
-        <h3 className="text-center mb-4">University Registration Login</h3>
-        <form onSubmit={handleSubmit}>
-          <div className="mb-3">
-            <label htmlFor="email" className="form-label">Email address</label>
-            <input
-              type="email"
-              className="form-control"
-              id="email"
-              placeholder="student@university.edu"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
+                    {/* Mohammed coded this */}
+                    <h2
+                        /* Ammar coded this */
+                        className="fw-bolder text-primary mb-2"
+                    >
+                        Registration Portal
+                    </h2>
 
-          <div className="mb-3">
-            <label htmlFor="password" className="form-label">Password</label>
-            <input
-              type="password"
-              className="form-control"
-              id="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
+                    {/* Mohammed coded this */}
+                    <p
 
-          <button type="submit" className="btn btn-primary w-100">
-            Login
-          </button>
-        </form>
+                        className="text-muted small"
+                    >
+                        Enter your student information to access the Student Portal.
+                    </p>
+                </div>
 
-      </div>
-    </div>
-  )
+                {/* Ammar coded this */}
+                <LoginForm />
+            </div>
+        </div>
+    );
 }
-
-export default LogIn
