@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 
 //Ammar coded this
-import InputField from '../common/InputField';
+import BaseTextField from '../common/BaseTextField';
+import PasswordField from '../common/PasswordField';
 
 //Mohammed coded this
 export default function LoginForm() {
@@ -22,7 +23,7 @@ export default function LoginForm() {
     return (
         <form onSubmit={handleSubmit}>
             {/* Ammar coded this */}
-            <InputField
+            <BaseTextField
                 id="stdIdInput"
                 label="STD ID"
                 type="text"
@@ -31,10 +32,9 @@ export default function LoginForm() {
                 onChange={(e) => setStdId(e.target.value)}
             />
             {/* Mohammed coded this */}
-            <InputField
+            <PasswordField
                 id="passwordInput"
                 label="Password"
-                type="password"
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

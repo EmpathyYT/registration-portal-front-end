@@ -1,6 +1,3 @@
-//Mohammed coded this
-import React from 'react';
-
 //Ammar coded this
 import LoginForm from '../components/auth/LoginForm';
 import 'bootstrap/dist/css/bootstrap.min.css';
