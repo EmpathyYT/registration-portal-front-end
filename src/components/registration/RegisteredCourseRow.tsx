@@ -1,47 +1,29 @@
 import React from 'react';
-
-export interface EnrolledCourse {
-    semesterCourseId: string | number;
-    courseId: string;
-    courseName: string;
-    credits: number;
-    lectureTime: string;
-    dayOfWeek: string;
-    instructor: string;
-    location: string;
-}
+import type {EnrolledCourse} from '../../types/registration';
 
 interface RegisteredCourseRowProps {
     course: EnrolledCourse;
-    onDrop: (semesterCourseId: string | number) => void;
+    onDrop: (semester_course_id: number) => void;
 }
 
 export const RegisteredCourseRow: React.FC<RegisteredCourseRowProps> = ({ course, onDrop }) => {
     return (
         <tr>
-            {/* 1. رقم المادة */}
-            <td>{course.courseId}</td>
-            {/* 2. اسم المادة */}
-            <td>{course.courseName}</td>
-            {/* 3. عدد الساعات */}
-            <td>{course.credits}</td>
-            {/* 4. الأيام */}
-            <td>{course.dayOfWeek}</td>
-            {/* 5. الوقت */}
-            <td>{course.lectureTime}</td>
-            {/* 6. المدرس */}
-            <td>{course.instructor}</td>
-            {/* 7. القاعة */}
-            <td>{course.location}</td>
-            {/* 8. الإجراء (زر Drop الأحمر) */}
             <td>
                 <button
-                    className="btn btn-danger btn-sm"
-                    onClick={() => onDrop(course.semesterCourseId)}
+                    className="btn btn-outline-danger btn-sm fw-bold shadow-sm rounded-3 px-3"
+                    onClick={() => onDrop(course.semester_course_id)}
                 >
                     Drop
                 </button>
             </td>
+            <td className="text-secondary">{course.course_id}</td>
+            <td className="fw-semibold">{course.name}</td>
+            <td>{course.credits}</td>
+            <td>{course.instructor_name}</td>
+            <td>{course.days_of_week}</td>
+            <td>{course.lecture_time_in_day}</td>
+            <td>{course.location}</td>
         </tr>
     );
 };

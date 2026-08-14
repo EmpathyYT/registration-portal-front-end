@@ -9,7 +9,7 @@ export interface CourseSection {
     course_id: string;
     instructor_name: string;
     lecture_time_in_day: string;
-    day_of_week: string;
+    days_of_week: string;
     location: string;
 }
 
@@ -20,6 +20,6 @@ export interface EnrolledCourse {
     credits: number;
     instructor_name: string;
     lecture_time_in_day: string;
-    day_of_week: string;
+    days_of_week: string;
     location: string;
 }
