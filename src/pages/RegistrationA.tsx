@@ -1,133 +1,119 @@
- // Made by <Abdalrhmanabualfool>
-import React, { useState } from 'react';
+import { useState } from 'react';
 import RegisteredCoursesTable from '../components/registration/RegisteredCoursesTable';
 import CourseSectionsTable from '../components/registration/CourseSectionsTable';
-import AvailableCoursesGrid, { type CourseSummary } from '../components/registration/AvailableCoursesGrid';
-import { type EnrolledCourse } from '../components/registration/RegisteredCourseRow';
-import { type CourseSection } from '../components/registration/CourseSectionRow';
+import AvailableCoursesGrid from '../components/registration/AvailableCoursesGrid';
+import type {Course, CourseSection, EnrolledCourse} from '../types/registration';
 
-// 1. البيانات التجريبية
-const INITIAL_AVAILABLE_COURSES: CourseSummary[] = [
-    { courseId: '30801342', courseName: 'تحليل وتصميم النظم', credits: 3 },
-    { courseId: '30801427', courseName: 'معمارية الحاسوب', credits: 3 },
-    { courseId: '30801211', courseName: 'تراكيب البيانات', credits: 3 },
-    { courseId: '30801301', courseName: 'قواعد البيانات', credits: 3 },
+const INITIAL_AVAILABLE_COURSES: Course[] = [
+    { course_id: '30801342', name: 'Systems Analysis and Design', credits: 3 },
+    { course_id: '30801427', name: 'Computer Architecture', credits: 3 },
+    { course_id: '30801211', name: 'Data Structures', credits: 3 },
+    { course_id: '30801301', name: 'Database Systems', credits: 3 },
 ];
 
 const MOCK_SECTIONS: Record<string, CourseSection[]> = {
     '30801342': [
-        { semesterCourseId: 101, courseName: 'تحليل وتصميم النظم', instructor: 'د. عماد الشلبي', dayOfWeek: 'ح ن ث ر', lectureTime: '08:30 - 10:00', location: 'E202 / ONLINE 1' },
-        { semesterCourseId: 102, courseName: 'تحليل وتصميم النظم', instructor: 'د. أحمد السالم', dayOfWeek: 'ن ث', lectureTime: '10:00 - 11:30', location: 'IT-105' },
+        { semester_course_id: 101, course_id: '30801342', instructor_name: 'Dr. Emad Al-Shalabi', days_of_week: 'Sun, Mon, Tue, Wed', lecture_time_in_day: '08:30 - 10:00', location: 'E202 / ONLINE 1' },
+        { semester_course_id: 102, course_id: '30801342', instructor_name: 'Dr. Ahmed Al-Salem', days_of_week: 'Mon, Tue', lecture_time_in_day: '10:00 - 11:30', location: 'IT-105' },
     ],
     '30801427': [
-        { semesterCourseId: 201, courseName: 'معمارية الحاسوب', instructor: 'خلدون عارف', dayOfWeek: 'ح ن ث ر', lectureTime: '11:30 - 13:00', location: 'E302 / ONLINE 1' },
+        { semester_course_id: 201, course_id: '30801427', instructor_name: 'Khaldoun Aref', days_of_week: 'Sun, Mon, Tue, Wed', lecture_time_in_day: '11:30 - 13:00', location: 'E302 / ONLINE 1' },
     ],
     '30801211': [
-        { semesterCourseId: 301, courseName: 'تراكيب البيانات', instructor: 'د. رانيا محمود', dayOfWeek: 'ح ث', lectureTime: '01:00 - 02:30', location: 'Lab 4' },
+        { semester_course_id: 301, course_id: '30801211', instructor_name: 'Dr. Rania Mahmoud', days_of_week: 'Sun, Tue', lecture_time_in_day: '01:00 - 02:30', location: 'Lab 4' },
     ],
     '30801301': [
-        { semesterCourseId: 401, courseName: 'قواعد البيانات', instructor: 'د. خالد العمري', dayOfWeek: 'ح ن ث ر', lectureTime: '09:30 - 10:30', location: 'Lab 2' },
-        { semesterCourseId: 402, courseName: 'قواعد البيانات', instructor: 'د. منار عيسى', dayOfWeek: 'ن ث', lectureTime: '12:00 - 01:30', location: 'IT-201' },
+        { semester_course_id: 401, course_id: '30801301', instructor_name: 'Dr. Khaled Al-Omari', days_of_week: 'Sun, Mon, Tue, Wed', lecture_time_in_day: '09:30 - 10:30', location: 'Lab 2' },
+        { semester_course_id: 402, course_id: '30801301', instructor_name: 'Dr. Manar Issa', days_of_week: 'Mon, Tue', lecture_time_in_day: '12:00 - 01:30', location: 'IT-201' },
     ],
 };
 
 export default function RegistrationA() {
-    // 2. التعريفات والـ States كلها داخل الدالة مباشرة
     const [registeredCourses, setRegisteredCourses] = useState<EnrolledCourse[]>([
         {
-            semesterCourseId: 999,
-            courseId: '30801100',
-            courseName: 'مقدمة في البرمجة',
+            semester_course_id: 999,
+            course_id: '30801100',
+            name: 'Introduction to Programming',
             credits: 3,
-            lectureTime: '08:30 - 10:00',
-            dayOfWeek: 'ح ن ث ر',
-            instructor: 'د. محمد علي',
+            lecture_time_in_day: '08:30 - 10:00',
+            days_of_week: 'Sun, Mon, Tue, Wed',
+            instructor_name: 'Dr. Mohammed Ali',
             location: 'C101',
         },
     ]);
 
-    const [selectedCourseId, setSelectedCourseId] = useState<string>('30801342');
+    const [selectedCourseId, setSelectedCourseId] = useState<string>('');
 
-    const totalCredits = registeredCourses.reduce((sum, course) => sum + course.credits, 0);
-
-    const handleSelectCourse = (courseId: string) => {
-        setSelectedCourseId(courseId);
+    const handleSelectCourse = (course_id: string) => {
+        setSelectedCourseId(course_id);
     };
 
-    const handleAddSection = (semesterCourseId: string | number) => {
+    const handleCloseSections = () => {
+        setSelectedCourseId('');
+    };
+
+    const handleAddSection = (semester_course_id: number) => {
         const currentSections = MOCK_SECTIONS[selectedCourseId] || [];
-        const sectionToAdd = currentSections.find(s => s.semesterCourseId === semesterCourseId);
-        const courseInfo = INITIAL_AVAILABLE_COURSES.find(c => c.courseId === selectedCourseId);
+        const sectionToAdd = currentSections.find(s => s.semester_course_id === semester_course_id);
+        const courseInfo = INITIAL_AVAILABLE_COURSES.find(c => c.course_id === selectedCourseId);
 
         if (!sectionToAdd || !courseInfo) return;
 
-        const isAlreadyRegistered = registeredCourses.some(c => c.courseId === selectedCourseId);
+        const isAlreadyRegistered = registeredCourses.some(c => c.course_id === selectedCourseId);
         if (isAlreadyRegistered) {
-            alert('هذه المادة مسجلة بالفعل!');
+            alert('This course is already registered!');
             setSelectedCourseId('');
             return;
         }
 
         const newCourse: EnrolledCourse = {
-            semesterCourseId: sectionToAdd.semesterCourseId,
-            courseId: courseInfo.courseId,
-            courseName: courseInfo.courseName,
+            semester_course_id: sectionToAdd.semester_course_id,
+            course_id: courseInfo.course_id,
+            name: courseInfo.name,
             credits: courseInfo.credits,
-            lectureTime: sectionToAdd.lectureTime,
-            dayOfWeek: sectionToAdd.dayOfWeek,
-            instructor: sectionToAdd.instructor,
+            lecture_time_in_day: sectionToAdd.lecture_time_in_day,
+            days_of_week: sectionToAdd.days_of_week,
+            instructor_name: sectionToAdd.instructor_name,
             location: sectionToAdd.location,
         };
 
         setRegisteredCourses([...registeredCourses, newCourse]);
+        setSelectedCourseId('');
     };
 
-    const handleDropCourse = (semesterCourseId: string | number) => {
-        setRegisteredCourses(registeredCourses.filter(c => c.semesterCourseId !== semesterCourseId));
+    const handleDropCourse = (semester_course_id: number) => {
+        setRegisteredCourses(registeredCourses.filter(c => c.semester_course_id !== semester_course_id));
     };
+
+    const selectedCourse = INITIAL_AVAILABLE_COURSES.find(c => c.course_id === selectedCourseId);
 
     return (
-        <div className="container my-5" dir="rtl">
-            {/* هيدر الصفحة وملخص الساعات */}
-            <div className="card shadow-sm mb-4 bg-light">
-                <div className="card-body d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2 className="fw-bold mb-1">بوابة تسجيل المواد الدراسية</h2>
-                        <p className="text-muted mb-0">اختر المواد والشعب المناسبة لجدولك الدراسي</p>
-                    </div>
-                    <div className="text-end">
-                        <span className="badge bg-primary fs-6 p-2">
-                            إجمالي الساعات المسجلة: {totalCredits} ساعة
-                        </span>
-                    </div>
+        <div className="min-vh-100 py-5" style={{ backgroundColor: '#f4f7f6' }}>
+            <div className="container">
+                <div className="text-center mb-5">
+                    <h2 className="fw-bolder text-primary mb-2">Course Registration Portal</h2>
                 </div>
-            </div>
 
-            {/* 1. جدول المواد المسجلة */}
-            <RegisteredCoursesTable
-                courses={registeredCourses}
-                onDropCourse={handleDropCourse}
-            />
+                <RegisteredCoursesTable
+                    courses={registeredCourses}
+                    onDropCourse={handleDropCourse}
+                />
 
-            {/* 2. شبكة المواد المقترحة */}
-            <AvailableCoursesGrid
-                courses={INITIAL_AVAILABLE_COURSES}
-                selectedCourseId={selectedCourseId}
-                onSelectCourse={handleSelectCourse}
-            />
+                <AvailableCoursesGrid
+                    courses={INITIAL_AVAILABLE_COURSES}
+                    selectedCourseId={selectedCourseId}
+                    onSelectCourse={handleSelectCourse}
+                />
 
-            {/* 3. جدول الشعب المتاحة */}
-            {selectedCourseId ? (
-                <div>
-                    <div className="alert alert-primary text-center mb-3 fw-bold">
-                        الشعب المتاحة لمادة: {INITIAL_AVAILABLE_COURSES.find(c => c.courseId === selectedCourseId)?.courseName} ({selectedCourseId})
-                    </div>
+                {selectedCourseId && selectedCourse && (
                     <CourseSectionsTable
+                        course={selectedCourse}
                         sections={MOCK_SECTIONS[selectedCourseId] || []}
                         onAddSection={handleAddSection}
+                        onClose={handleCloseSections}
                     />
-                </div>
-            ) : null}
+                )}
+            </div>
         </div>
     );
 }

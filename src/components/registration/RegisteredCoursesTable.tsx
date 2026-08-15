@@ -1,87 +1,54 @@
-
-
 import React from 'react';
-
-export interface EnrolledCourse {
-    semesterCourseId: string | number;
-    courseId: string;
-    courseName: string;
-    credits: number;
-    lectureTime: string;
-    dayOfWeek: string;
-    instructor: string;
-    location: string;
-}
-
-interface RegisteredCourseRowProps {
-    course: EnrolledCourse;
-    onDrop: (semesterCourseId: string | number) => void;
-}
-
-export const RegisteredCourseRow: React.FC<RegisteredCourseRowProps> = ({ course, onDrop }) => {
-    return (
-        <tr>
-            <td>{course.courseId}</td>
-            <td>{course.courseName}</td>
-            <td>{course.credits}</td>
-            <td>{course.dayOfWeek}</td>
-            <td>{course.lectureTime}</td>
-            <td>{course.instructor}</td>
-            <td>{course.location}</td>
-            <td>
-                <button
-                    className="btn btn-danger btn-sm"
-                    onClick={() => onDrop(course.semesterCourseId)}
-                >
-                    Drop
-                </button>
-            </td>
-        </tr>
-    );
-};
+import type {EnrolledCourse} from '../../types/registration';
+import RegisteredCourseRow from './RegisteredCourseRow';
 
 interface RegisteredCoursesTableProps {
     courses: EnrolledCourse[];
-    onDropCourse: (semesterCourseId: string | number) => void;
+    onDropCourse: (semester_course_id: number) => void;
 }
 
 const RegisteredCoursesTable: React.FC<RegisteredCoursesTableProps> = ({ courses, onDropCourse }) => {
+    const totalCredits = courses.reduce((sum, course) => sum + course.credits, 0);
+
     return (
-        <div className="card shadow-sm mb-4">
-            <div className="card-header bg-white py-3">
-                <h5 className="mb-0 fw-bold">المواد المسجلة حالياً</h5>
+        <div className="card shadow-lg border-0 rounded-4 mb-4">
+            <div className="card-header bg-transparent border-0 pt-4 pb-2 px-4 d-flex justify-content-between align-items-center">
+                <h4 className="mb-0 fw-bolder text-primary">Registered Courses</h4>
+                <span className="badge bg-primary fs-6 p-2 shadow-sm rounded-pill">
+                    Total Credits: {totalCredits} Hours
+                </span>
             </div>
-            <div className="card-body p-0">
-                <div className="table-responsive">
+            <div className="card-body p-4">
+                <div className="table-responsive rounded-3 border-0">
                     <table className="table table-hover text-center align-middle mb-0">
                         <thead className="table-light">
-                            <tr>
-                                <th>رقم المادة</th>
-                                <th>اسم المادة</th>
-                                <th>الساعات</th>
-                                <th>الأيام</th>
-                                <th>الوقت</th>
-                                <th>المدرس</th>
-                                <th>القاعة</th>
-                                <th>الإجراء</th>
-                            </tr>
+                        <tr>
+                            <th className="fw-semibold text-secondary py-3">Action</th>
+                            <th className="fw-semibold text-secondary py-3">Course ID</th>
+                            <th className="fw-semibold text-secondary py-3">Course Name</th>
+                            <th className="fw-semibold text-secondary py-3">Credits</th>
+                            <th className="fw-semibold text-secondary py-3">Instructor</th>
+                            <th className="fw-semibold text-secondary py-3">Days</th>
+                            <th className="fw-semibold text-secondary py-3">Time</th>
+                            <th className="fw-semibold text-secondary py-3">Location</th>
+                        </tr>
                         </thead>
                         <tbody>
-                            {courses.length === 0 ? (
-                                <tr>
-                                    <td colSpan={8} className="text-muted py-3">
-                                        لا توجد مواد مسجلة حالياً
-                                    </td>
-                                </tr>
-                            ) : (
-                                courses.map((course) => (
-                                    <RegisteredCourseRow
-                                        key={course.semesterCourseId}
-                                        course={course}
-                                        onDrop={onDropCourse}
-                                    />
-                                ))
-                            )}
+                        {courses.length === 0 ? (
+                            <tr>
+                                <td colSpan={8} className="text-muted py-4">
+                                    No courses currently registered
+                                </td>
+                            </tr>
+                        ) : (
+                            courses.map((course) => (
+                                <RegisteredCourseRow
+                                    key={course.semester_course_id}
+                                    course={course}
+                                    onDrop={onDropCourse}
+                                />
+                            ))
+                        )}
                         </tbody>
                     </table>
                 </div>

@@ -1,37 +1,30 @@
-
-
 import React from 'react';
-
-export interface CourseSection {
-    semesterCourseId: string | number;
-    courseName?: string;
-    instructor: string;
-    dayOfWeek: string;
-    lectureTime: string;
-    location: string;
-}
+import type {CourseSection, Course} from '../../types/registration';
 
 interface CourseSectionRowProps {
+    course: Course;
     section: CourseSection;
-    onAdd: (semesterCourseId: string | number) => void;
+    onAdd: (semester_course_id: number) => void;
 }
 
-export const CourseSectionRow: React.FC<CourseSectionRowProps> = ({ section, onAdd }) => {
+export const CourseSectionRow: React.FC<CourseSectionRowProps> = ({ course, section, onAdd }) => {
     return (
         <tr>
-            {section.courseName && <td>{section.courseName}</td>}
-            <td>{section.instructor}</td>
-            <td>{section.dayOfWeek}</td>
-            <td>{section.lectureTime}</td>
-            <td>{section.location}</td>
             <td>
                 <button
-                    className="btn btn-success btn-sm px-3"
-                    onClick={() => onAdd(section.semesterCourseId)}
+                    className="btn btn-outline-success btn-sm fw-bold shadow-sm rounded-3 px-3"
+                    onClick={() => onAdd(section.semester_course_id)}
                 >
                     Add
                 </button>
             </td>
+            <td className="text-secondary">{course.course_id}</td>
+            <td className="fw-semibold">{course.name}</td>
+            <td>{course.credits}</td>
+            <td>{section.instructor_name}</td>
+            <td>{section.days_of_week}</td>
+            <td>{section.lecture_time_in_day}</td>
+            <td>{section.location}</td>
         </tr>
     );
 };

@@ -1,66 +1,64 @@
-
 import React from 'react';
-
-export interface CourseSection {
-    semesterCourseId: string | number;
-    courseName?: string;
-    instructor: string;
-    dayOfWeek: string;
-    lectureTime: string;
-    location: string;
-}
-
-interface CourseSectionRowProps {
-    section: CourseSection;
-    onAdd: (semesterCourseId: string | number) => void;
-}
-
-export const CourseSectionRow: React.FC<CourseSectionRowProps> = ({ section, onAdd }) => {
-    return (
-        <tr>
-            
-            {section.courseName && <td>{section.courseName}</td>}
-            <td>{section.instructor}</td>
-            <td>{section.dayOfWeek}</td>
-            <td>{section.lectureTime}</td>
-            <td>{section.location}</td>
-            <td>
-                <button
-                    className="btn btn-success btn-sm px-3"
-                    onClick={() => onAdd(section.semesterCourseId)}
-                >
-                    Add
-                </button>
-            </td>
-        </tr>
-    );
-};
+import type {CourseSection, Course} from '../../types/registration';
+import CourseSectionRow from './CourseSectionRow';
 
 interface CourseSectionsTableProps {
+    course: Course;
     sections: CourseSection[];
-    onAddSection: (semesterCourseId: string | number) => void;
+    onAddSection: (semester_course_id: number) => void;
+    onClose: () => void;
 }
 
-const CourseSectionsTable: React.FC<CourseSectionsTableProps> = ({ sections, onAddSection }) => {
+const CourseSectionsTable: React.FC<CourseSectionsTableProps> = ({ course, sections, onAddSection, onClose }) => {
     return (
-        <div className="table-responsive">
-            <table className="table table-bordered table-hover text-center align-middle">
-                <thead className="table-light">
-                    <tr>
-                        <th>اسم المادة</th>
-                        <th>المدرس</th>
-                        <th>الأيام</th>
-                        <th>الوقت</th>
-                        <th>القاعة</th>
-                        <th>الإجراء</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {sections.map((sec) => (
-                        <CourseSectionRow key={sec.semesterCourseId} section={sec} onAdd={onAddSection} />
-                    ))}
-                </tbody>
-            </table>
+        <div className="modal d-block" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }} tabIndex={-1}>
+            <div className="modal-dialog modal-xl modal-dialog-centered">
+                <div className="modal-content border-0 rounded-4 shadow-lg">
+
+                    <div className="modal-header border-0 pt-4 px-4 pb-2">
+                        <h4 className="modal-title fw-bolder text-primary">Available Sections: {course.name}</h4>
+                        <button type="button" className="btn-close" onClick={onClose} aria-label="Close"></button>
+                    </div>
+
+                    <div className="modal-body p-4">
+                        <div className="table-responsive rounded-3 border-0">
+                            <table className="table table-hover text-center align-middle mb-0">
+                                <thead className="table-light">
+                                <tr>
+                                    <th className="fw-semibold text-secondary py-3">Action</th>
+                                    <th className="fw-semibold text-secondary py-3">Course ID</th>
+                                    <th className="fw-semibold text-secondary py-3">Course Name</th>
+                                    <th className="fw-semibold text-secondary py-3">Credits</th>
+                                    <th className="fw-semibold text-secondary py-3">Instructor</th>
+                                    <th className="fw-semibold text-secondary py-3">Days</th>
+                                    <th className="fw-semibold text-secondary py-3">Time</th>
+                                    <th className="fw-semibold text-secondary py-3">Location</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {sections.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={8} className="text-muted py-4">
+                                            No sections available for this course.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    sections.map((sec) => (
+                                        <CourseSectionRow
+                                            key={sec.semester_course_id}
+                                            course={course}
+                                            section={sec}
+                                            onAdd={onAddSection}
+                                        />
+                                    ))
+                                )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
         </div>
     );
 };
