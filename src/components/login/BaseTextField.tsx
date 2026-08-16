@@ -1,7 +1,5 @@
-//Mohammed coded this
 import React, {type ReactNode } from 'react';
 
-//Ammar coded this
 interface BaseTextFieldProps {
     id: string;
     label: string;
@@ -12,7 +10,6 @@ interface BaseTextFieldProps {
     children?: ReactNode;
 }
 
-//Ammar coded this
 export default function BaseTextField(
     {
         id,
@@ -30,17 +27,13 @@ export default function BaseTextField(
             </label>
 
             <div className="position-relative">
-                {/* Mohammed coded this */}
                 <input
-                    /* Ammar coded this */
                     type={type}
-                    /* Mohammed coded this */
                     id={id}
                     placeholder={placeholder}
                     value={value}
                     onChange={onChange}
                     required
-                    /* Ammar coded this */
                     className="form-control form-control-lg bg-light border-0 pe-5"
                 />
 

@@ -1,37 +1,28 @@
-//Mohammed coded this
 import React, { useState } from 'react';
 
-//Ammar coded this
-import BaseTextField from '../common/BaseTextField';
-import PasswordField from '../common/PasswordField';
+import BaseTextField from './BaseTextField.tsx';
+import PasswordField from './PasswordField.tsx';
 
-//Mohammed coded this
 export default function LoginForm() {
-    //Ammar coded this
-    const [stdId, setStdId] = useState("");
+    const [UniId, setStdId] = useState("");
 
-    //Mohammed coded this
     const [password, setPassword] = useState("");
 
-    //Mohammed coded this
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        //Ammar coded this
-        console.log('Login attempt:', { stdId, password });
+        console.log('Login attempt:', { UniId, password });
     };
 
     return (
         <form onSubmit={handleSubmit}>
-            {/* Ammar coded this */}
             <BaseTextField
                 id="stdIdInput"
-                label="STD ID"
+                label="UNI ID"
                 type="text"
-                placeholder="Enter your Student ID"
-                value={stdId}
+                placeholder="Enter your University ID"
+                value={UniId}
                 onChange={(e) => setStdId(e.target.value)}
             />
-            {/* Mohammed coded this */}
             <PasswordField
                 id="passwordInput"
                 label="Password"
@@ -40,13 +31,10 @@ export default function LoginForm() {
                 onChange={(e) => setPassword(e.target.value)}
             />
 
-            {/* Ammar coded this */}
             <div className="mt-4">
 
-                {/* Mohammed coded this */}
                 <button
                     type="submit"
-                    /* Ammar coded this */
                     className="btn btn-primary btn-lg w-100 fw-bold shadow-sm rounded-3"
                 >
                     Sign In
