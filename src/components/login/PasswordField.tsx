@@ -1,11 +1,8 @@
-//Mohammed coded this
 import React from 'react';
 
-//Ammar coded this
 import { useState } from 'react';
-import BaseTextField from './BaseTextField';
+import BaseTextField from './BaseTextField.tsx';
 
-//Ammar coded this
 interface PasswordFieldProps {
     id: string;
     label: string;
@@ -14,7 +11,6 @@ interface PasswordFieldProps {
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-//Ammar coded this
 export default function PasswordField(
     {
         id,
@@ -34,7 +30,6 @@ export default function PasswordField(
             value={value}
             onChange={onChange}
         >
-            {/* Ammar coded this */}
             <button
                 type="button"
                 className="btn position-absolute top-50 end-0 translate-middle-y border-0 text-muted"
