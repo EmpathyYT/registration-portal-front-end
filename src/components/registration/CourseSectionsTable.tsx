@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { Course, CourseSection } from '../../types/registration';
 
 interface CourseSectionsTableProps {
@@ -9,10 +9,20 @@ interface CourseSectionsTableProps {
 }
 
 const CourseSectionsTable: React.FC<CourseSectionsTableProps> = ({ course, sections, onAddSection, onClose }) => {
+    const [addingSectionId, setAddingSectionId] = useState<number | null>(null);
+
+    const handleAddSection = (sectionId: number) => {
+        setAddingSectionId(sectionId);
+        setTimeout(() => {
+            onAddSection(sectionId);
+            setAddingSectionId(null);
+        }, 320);
+    };
+
     return (
         <div className="modal d-block" style={{ backgroundColor: 'rgba(0, 0, 0, 0.4)', backdropFilter: 'blur(4px)', zIndex: 1050 }} tabIndex={-1}>
             <div className="modal-dialog modal-dialog-centered modal-lg">
-                <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '1.5rem' }}>
+                <div className="modal-content border-0 shadow-lg fade-up" style={{ borderRadius: '1.5rem', background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.6)' }}>
 
                     <div className="modal-header border-0 pt-4 px-4 px-md-5 pb-2 d-flex justify-content-between align-items-start">
                         <div>
@@ -37,13 +47,11 @@ const CourseSectionsTable: React.FC<CourseSectionsTableProps> = ({ course, secti
                                     No sections currently available for this course.
                                 </div>
                             ) : (
-                                sections.map((section) => (
+                                sections.map((section, index) => (
                                     <div
                                         key={section.semester_course_id}
-                                        className="list-group-item border-0 p-3 p-md-4 bg-light rounded-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between"
-                                        style={{ transition: 'all 0.2s ease' }}
-                                        onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                                        onMouseOut={(e) => e.currentTarget.style.transform = 'none'}
+                                        className="list-group-item border-0 p-3 p-md-4 bg-light rounded-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between interactive-card section-enter"
+                                        style={{ animationDelay: `${index * 55}ms` }}
                                     >
                                         <div className="d-flex align-items-center mb-3 mb-md-0">
                                             <div>
@@ -58,10 +66,10 @@ const CourseSectionsTable: React.FC<CourseSectionsTableProps> = ({ course, secti
                                             </div>
                                         </div>
 
-                                        <div className="d-flex flex-column flex-md-row align-items-md-center gap-4">
+                                        <div className="d-flex flex-column flex-md-row align-items-md-center gap-3 gap-md-4">
 
                                             <div className="text-md-end">
-                                                {/* CHANGED: Removed the "Days:" label span */}
+                                                {}
                                                 <div className="fw-bolder text-dark small mb-2">
                                                     {section.days_of_week}
                                                 </div>
@@ -74,11 +82,17 @@ const CourseSectionsTable: React.FC<CourseSectionsTableProps> = ({ course, secti
                                             </div>
 
                                             <button
-                                                className="btn btn-success fw-bold rounded-3 px-4 py-2 shadow-sm d-flex align-items-center justify-content-center gap-2"
-                                                onClick={() => onAddSection(section.semester_course_id)}
+                                                className="btn btn-success fw-bold rounded-3 px-4 py-2 shadow-sm d-flex align-items-center justify-content-center gap-2 pressable-btn"
+                                                onClick={() => handleAddSection(section.semester_course_id)}
                                                 style={{ transition: 'all 0.2s ease', minWidth: '100px' }}
+                                                disabled={addingSectionId === section.semester_course_id}
                                             >
-                                                Add
+                                                {addingSectionId === section.semester_course_id ? (
+                                                    <>
+                                                        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                                        Adding...
+                                                    </>
+                                                ) : 'Add'}
                                             </button>
                                         </div>
                                     </div>

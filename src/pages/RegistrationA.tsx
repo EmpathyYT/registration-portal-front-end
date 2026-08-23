@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import RegisteredCoursesTable, {type CommitState } from '../components/registration/RegisteredCoursesTable';
 import CourseSectionsTable from '../components/registration/CourseSectionsTable';
 import AvailableCoursesGrid from '../components/registration/AvailableCoursesGrid';
 import type {Course, CourseSection, EnrolledCourse} from '../types/registration';
+import PageMenu from '../components/layout/PageMenu';
+import FloatingNotice, { type NoticeState } from '../components/layout/FloatingNotice';
 
 const INITIAL_AVAILABLE_COURSES: Course[] = [
     { course_id: '30801342', name: 'Systems Analysis and Design', credits: 3 },
@@ -28,16 +30,14 @@ const MOCK_SECTIONS: Record<string, CourseSection[]> = {
     ],
 };
 
-// --- TIME CONFLICT HELPER ALGORITHM ---
 const hasTimeConflict = (days1: string, time1: string, days2: string, time2: string) => {
-    // Check if they share any days
+    
     const d1 = days1.split(',').map(d => d.trim());
     const d2 = days2.split(',').map(d => d.trim());
     const sharesDay = d1.some(day => d2.includes(day));
 
     if (!sharesDay) return false;
 
-    // Helper to convert "HH:MM" to minutes since midnight for easy range checking
     const parseTime = (timeStr: string) => {
         const [start, end] = timeStr.split('-').map(t => t.trim());
         const [startH, startM] = start.split(':').map(Number);
@@ -48,11 +48,16 @@ const hasTimeConflict = (days1: string, time1: string, days2: string, time2: str
     const t1 = parseTime(time1);
     const t2 = parseTime(time2);
 
-    // Two time ranges overlap if (Start A < End B) AND (Start B < End A)
     return t1.startMins < t2.endMins && t2.startMins < t1.endMins;
 };
 
-export default function RegistrationA() {
+type RegistrationAProps = {
+    onSwitchPage: () => void;
+    onLogout: () => void;
+};
+
+export default function RegistrationA({ onSwitchPage, onLogout }: RegistrationAProps) {
+    const [notice, setNotice] = useState<NoticeState>(null);
     const [registeredCourses, setRegisteredCourses] = useState<EnrolledCourse[]>([
         {
             semester_course_id: 999,
@@ -69,8 +74,15 @@ export default function RegistrationA() {
     const [selectedCourseId, setSelectedCourseId] = useState<string>('');
     const [commitState, setCommitState] = useState<CommitState>('clean');
 
+    useEffect(() => {
+        if (!notice) return;
+        const timeoutId = window.setTimeout(() => setNotice(null), 2600);
+        return () => window.clearTimeout(timeoutId);
+    }, [notice]);
+
     const handleSelectCourse = (course_id: string) => {
         setSelectedCourseId(course_id);
+        setNotice({ type: 'info', message: 'Loading sections...' });
     };
 
     const handleCloseSections = () => {
@@ -84,26 +96,26 @@ export default function RegistrationA() {
 
         if (!sectionToAdd || !courseInfo) return;
 
-        // 1. Check Duplicate Course
         const isAlreadyRegistered = registeredCourses.some(c => c.course_id === selectedCourseId);
         if (isAlreadyRegistered) {
-            alert('This course is already registered!');
+            setNotice({ type: 'error', message: 'This course is already registered.' });
             setSelectedCourseId('');
             return;
         }
 
-        // 2. Check Time Conflicts
         const conflictCourse = registeredCourses.find(c =>
             hasTimeConflict(sectionToAdd.days_of_week, sectionToAdd.lecture_time_in_day, c.days_of_week, c.lecture_time_in_day)
         );
 
         if (conflictCourse) {
-            alert(`This section overlaps with your currently registered course:\n"${conflictCourse.name}" (${conflictCourse.lecture_time_in_day})`);
+            setNotice({
+                type: 'error',
+                message: `Time conflict with "${conflictCourse.name}" (${conflictCourse.lecture_time_in_day}).`
+            });
             setSelectedCourseId('');
             return;
         }
 
-        // 3. Add to Schedule
         const newCourse: EnrolledCourse = {
             semester_course_id: sectionToAdd.semester_course_id,
             course_id: courseInfo.course_id,
@@ -118,19 +130,26 @@ export default function RegistrationA() {
         setRegisteredCourses([...registeredCourses, newCourse]);
         setSelectedCourseId('');
         setCommitState('dirty');
+        setNotice({ type: 'success', message: `${newCourse.name} was added.` });
     };
 
     const handleDropCourse = (semester_course_id: number) => {
+        const droppedCourse = registeredCourses.find(c => c.semester_course_id === semester_course_id);
         setRegisteredCourses(registeredCourses.filter(c => c.semester_course_id !== semester_course_id));
         setCommitState('dirty');
+        if (droppedCourse) {
+            setNotice({ type: 'info', message: `${droppedCourse.name} was removed.` });
+        }
     };
 
     const handleCommitSchedule = () => {
         setCommitState('committing');
+        setNotice({ type: 'info', message: 'Saving schedule...' });
 
         setTimeout(() => {
             console.log("Committed to DB:", registeredCourses);
             setCommitState('success');
+            setNotice({ type: 'success', message: 'Schedule saved successfully.' });
 
             setTimeout(() => {
                 setCommitState('clean');
@@ -142,24 +161,32 @@ export default function RegistrationA() {
     const selectedCourse = INITIAL_AVAILABLE_COURSES.find(c => c.course_id === selectedCourseId);
 
     return (
-        <div className="min-vh-100 pb-5" style={{ backgroundColor: '#f8f9fc', paddingTop: '4rem' }}>
+        <div className="min-vh-100 pb-5" style={{ paddingTop: '5.5rem' }}>
+            <PageMenu switchLabel="Project Page" onSwitchPage={onSwitchPage} onLogout={onLogout} />
+            <FloatingNotice notice={notice} />
             <div className="container" style={{ maxWidth: '1100px' }}>
-                <div className="text-center mb-5">
-                    <h1 className="fw-bolder text-success mb-2" style={{ letterSpacing: '-0.5px' }}>Course Registration Portal</h1>
+                <div className="text-center mb-5 fade-up">
+                    
+                    <h1 className="fw-bolder mb-1" style={{ color: '#0f172a', letterSpacing: '-0.5px' }}>Course Registration Portal</h1>
+                    <p className="text-muted mb-0">Manage your semester schedule below.</p>
                 </div>
 
-                <RegisteredCoursesTable
-                    courses={registeredCourses}
-                    onDropCourse={handleDropCourse}
-                    onCommit={handleCommitSchedule}
-                    commitState={commitState}
-                />
+                <div className="section-enter">
+                    <RegisteredCoursesTable
+                        courses={registeredCourses}
+                        onDropCourse={handleDropCourse}
+                        onCommit={handleCommitSchedule}
+                        commitState={commitState}
+                    />
+                </div>
 
-                <AvailableCoursesGrid
-                    courses={INITIAL_AVAILABLE_COURSES}
-                    selectedCourseId={selectedCourseId}
-                    onSelectCourse={handleSelectCourse}
-                />
+                <div className="section-enter">
+                    <AvailableCoursesGrid
+                        courses={INITIAL_AVAILABLE_COURSES}
+                        selectedCourseId={selectedCourseId}
+                        onSelectCourse={handleSelectCourse}
+                    />
+                </div>
 
                 {selectedCourseId && selectedCourse && (
                     <CourseSectionsTable

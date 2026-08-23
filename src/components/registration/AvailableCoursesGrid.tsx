@@ -13,11 +13,23 @@ export const AvailableCoursesGrid: React.FC<AvailableCoursesGridProps> = ({
                                                                               selectedCourseId,
                                                                           }) => {
     const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+                                                                              const [selectingCourseId, setSelectingCourseId] = useState<string | null>(null);
+
+                                                                              const handleSelectCourse = (courseId: string) => {
+                                                                                  setSelectingCourseId(courseId);
+                                                                                  setTimeout(() => {
+                                                                                      onSelectCourse(courseId);
+                                                                                      setSelectingCourseId(null);
+                                                                                  }, 260);
+                                                                              };
 
     return (
         <div className="mb-5">
-            {/* CHANGED: text-primary to text-success */}
-            <h4 className="fw-bolder text-success text-center mb-4">Available Courses</h4>
+            {}
+            <div className="text-center mb-4">
+                <h4 className="fw-bolder mb-0" style={{ color: '#0f172a' }}>Available Courses</h4>
+                <p className="text-muted small mb-0 mt-1">Select a course to view available sections</p>
+            </div>
 
             {courses.length === 0 ? (
                 <div className="alert bg-white border-0 shadow-sm rounded-4 p-5 text-center">
@@ -25,22 +37,27 @@ export const AvailableCoursesGrid: React.FC<AvailableCoursesGridProps> = ({
                 </div>
             ) : (
                 <div className="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
-                    {courses.map((course) => {
+                    {courses.map((course, index) => {
                         const isSelected = course.course_id === selectedCourseId;
                         const isHovered = hoveredCard === course.course_id;
+                        const isSelecting = selectingCourseId === course.course_id;
 
                         return (
-                            <div key={course.course_id} className="col">
-                                {/* CHANGED: border-primary to border-success */}
+                            <div key={course.course_id} className="col section-enter" style={{ animationDelay: `${index * 55}ms` }}>
+                                {}
                                 <div
-                                    className={`card h-100 bg-white ${isSelected ? 'border border-2 border-success' : 'border-0'}`}
+                                    className={`card h-100 interactive-card ${isSelected ? 'border border-2 border-success' : 'border-0'}`}
                                     onMouseEnter={() => setHoveredCard(course.course_id)}
                                     onMouseLeave={() => setHoveredCard(null)}
                                     style={{
                                         borderRadius: '1rem',
-                                        boxShadow: isHovered || isSelected ? '0 1rem 3rem rgba(0,0,0,0.1)' : '0 0.5rem 1.5rem rgba(0,0,0,0.05)',
+                                        boxShadow: isHovered || isSelected ? '0 16px 48px rgba(15,23,42,0.13)' : '0 4px 20px rgba(15,23,42,0.07)',
                                         transform: isHovered && !isSelected ? 'translateY(-5px)' : 'none',
-                                        transition: 'all 0.3s ease'
+                                        transition: 'all 0.3s ease',
+                                        background: 'rgba(255,255,255,0.88)',
+                                        backdropFilter: 'blur(10px)',
+                                        WebkitBackdropFilter: 'blur(10px)',
+                                        border: isSelected ? '' : '1px solid rgba(255,255,255,0.6)'
                                     }}
                                 >
                                     <div className="card-body p-4 d-flex flex-column text-center">
@@ -56,13 +73,14 @@ export const AvailableCoursesGrid: React.FC<AvailableCoursesGridProps> = ({
                                         </p>
 
                                         <div className="mt-auto">
-                                            {/* CHANGED: btn-primary/text-primary to btn-success/text-success variants */}
+                                            {}
                                             <button
-                                                className={`btn w-100 fw-bold rounded-3 py-2 ${isSelected ? 'btn-success shadow-sm' : isHovered ? 'btn-outline-success' : 'btn-light text-success'}`}
+                                                className={`btn w-100 fw-bold rounded-3 py-2 pressable-btn ${isSelected ? 'btn-success shadow-sm' : isHovered ? 'btn-outline-success' : 'btn-light text-success'}`}
                                                 style={{ transition: 'all 0.2s ease' }}
-                                                onClick={() => onSelectCourse(course.course_id)}
+                                                onClick={() => handleSelectCourse(course.course_id)}
+                                                disabled={isSelecting}
                                             >
-                                                {isSelected ? 'Viewing Classes' : 'Show available classes'}
+                                                {isSelecting ? 'Opening...' : isSelected ? 'Viewing Classes' : 'Show available classes'}
                                             </button>
                                         </div>
                                     </div>

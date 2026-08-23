@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { EnrolledCourse } from '../../types/registration';
 
 export type CommitState = 'clean' | 'dirty' | 'committing' | 'success';
@@ -11,8 +11,17 @@ interface RegisteredCoursesTableProps {
 }
 
 const RegisteredCoursesTable: React.FC<RegisteredCoursesTableProps> = ({ courses, onDropCourse, onCommit, commitState }) => {
+    const [droppingCourseId, setDroppingCourseId] = useState<number | null>(null);
     const totalCredits = courses.reduce((sum, course) => sum + course.credits, 0);
     const isOverCredits = totalCredits > 18;
+
+    const handleDropCourse = (semesterCourseId: number) => {
+        setDroppingCourseId(semesterCourseId);
+        setTimeout(() => {
+            onDropCourse(semesterCourseId);
+            setDroppingCourseId(null);
+        }, 260);
+    };
 
     let btnClass = "btn fw-bolder rounded-3 py-2 d-flex align-items-center justify-content-center gap-2 ";
     let btnContent = null;
@@ -89,20 +98,23 @@ const RegisteredCoursesTable: React.FC<RegisteredCoursesTableProps> = ({ courses
                 `}
             </style>
 
-            <div className="card border-0 mb-5" style={{ borderRadius: '1.5rem', boxShadow: '0 1rem 3rem rgba(0,0,0,0.08)' }}>
-                <div className="card-header bg-white border-0 pt-4 pb-3 px-4 px-md-5 d-flex flex-column flex-md-row justify-content-between align-items-md-center" style={{ borderRadius: '1.5rem 1.5rem 0 0' }}>
-                    <div className="mb-3 mb-md-0">
-                        <h3 className="fw-bolder text-success mb-1">Registered Courses</h3>
+            <div className="card border-0 mb-5 fade-up" style={{ borderRadius: '1.5rem', boxShadow: '0 8px 32px rgba(15,23,42,0.09)', background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.6)' }}>
+                <div className="card-header bg-transparent border-0 pt-4 pb-3 px-4 px-md-5 d-flex flex-column flex-md-row justify-content-between align-items-md-center" style={{ borderRadius: '1.5rem 1.5rem 0 0' }}>
+                    <div className="mb-3 mb-md-0 d-flex align-items-center gap-3">
+                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'linear-gradient(135deg, #22c55e, #16a34a)', boxShadow: '0 4px 12px rgba(22,163,74,0.28)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <svg width="18" height="18" fill="white" viewBox="0 0 16 16"><path d="M0 1.5A1.5 1.5 0 0 1 1.5 0h13A1.5 1.5 0 0 1 16 1.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 14.5v-13zm1.5-.5a.5.5 0 0 0-.5.5v13a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-13a.5.5 0 0 0-.5-.5h-13zM5 6a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-1 4a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm5-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-1 4a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm5-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-1 4a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg>
+                        </div>
+                        <h3 className="fw-bolder mb-0" style={{ color: '#0f172a' }}>Registered Courses</h3>
                     </div>
 
                     <div className="d-flex align-items-center gap-3">
-                        {/* CHANGED: Removed " / 18" from the strings below */}
+                        {}
                         <div className={`badge ${isOverCredits ? 'bg-danger text-danger' : 'bg-success text-success'} bg-opacity-10 rounded-pill px-4 py-2 fw-bold fs-6 shadow-sm`} style={{ transition: 'all 0.3s ease' }}>
                             {isOverCredits ? `Limit Exceeded (${totalCredits})` : `Total Credits: ${totalCredits}`}
                         </div>
 
                         <button
-                            className={btnClass}
+                            className={`${btnClass} pressable-btn`}
                             onClick={onCommit}
                             disabled={isDisabled}
                             style={{ transition: 'background-color 0.3s ease, transform 0.2s ease', width: '190px' }}
@@ -119,13 +131,11 @@ const RegisteredCoursesTable: React.FC<RegisteredCoursesTableProps> = ({ courses
                                 No courses currently registered.
                             </div>
                         ) : (
-                            courses.map((course) => (
+                            courses.map((course, index) => (
                                 <div
                                     key={course.semester_course_id}
-                                    className="list-group-item border-0 p-3 p-md-4 bg-light rounded-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between"
-                                    style={{ transition: 'all 0.2s ease' }}
-                                    onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                                    onMouseOut={(e) => e.currentTarget.style.transform = 'none'}
+                                    className="list-group-item border-0 p-3 p-md-4 bg-light rounded-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between interactive-card section-enter"
+                                    style={{ animationDelay: `${index * 45}ms` }}
                                 >
                                     <div className="d-flex align-items-center mb-3 mb-md-0">
                                         <div>
@@ -147,7 +157,7 @@ const RegisteredCoursesTable: React.FC<RegisteredCoursesTableProps> = ({ courses
                                     <div className="d-flex flex-column flex-md-row align-items-md-center gap-4">
 
                                         <div className="text-center text-md-end">
-                                            {/* CHANGED: Removed the "Days:" label span */}
+                                            {}
                                             <div className="fw-bolder text-dark small mb-2">
                                                 {course.days_of_week}
                                             </div>
@@ -163,11 +173,12 @@ const RegisteredCoursesTable: React.FC<RegisteredCoursesTableProps> = ({ courses
                                         </div>
 
                                         <button
-                                            className="btn btn-outline-danger fw-bold rounded-3 px-4 py-2 shadow-sm"
-                                            onClick={() => onDropCourse(course.semester_course_id)}
+                                            className="btn btn-outline-danger fw-bold rounded-3 px-4 py-2 shadow-sm pressable-btn"
+                                            onClick={() => handleDropCourse(course.semester_course_id)}
                                             style={{ minWidth: '100px' }}
+                                            disabled={droppingCourseId === course.semester_course_id}
                                         >
-                                            Drop
+                                            {droppingCourseId === course.semester_course_id ? 'Dropping...' : 'Drop'}
                                         </button>
                                     </div>
                                 </div>

@@ -10,20 +10,34 @@ interface AvailableTeamsGridProps {
 export const AvailableTeamsGrid: React.FC<AvailableTeamsGridProps> = ({ teams, onJoinRequest, onCreateTeam }) => {
     const [hoveredCard, setHoveredCard] = useState<number | null>(null);
     const [requestedTeams, setRequestedTeams] = useState<number[]>([]);
+    const [requestingTeamId, setRequestingTeamId] = useState<number | null>(null);
 
     const handleRequest = (team_id: number) => {
-        setRequestedTeams([...requestedTeams, team_id]);
-        onJoinRequest(team_id);
+        setRequestingTeamId(team_id);
+        setTimeout(() => {
+            setRequestedTeams((prev) => [...prev, team_id]);
+            setRequestingTeamId(null);
+            onJoinRequest(team_id);
+        }, 550);
     };
 
     return (
         <div className="mb-5">
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
                 <div>
-                    <h4 className="fw-bolder text-dark mb-0">Explore Teams</h4>
+                    <div className="d-flex align-items-center gap-2">
+                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #3b7cf8, #1d4ed8)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(37,99,235,0.25)' }}>
+                            <svg width="17" height="17" fill="white" viewBox="0 0 16 16">
+                                <path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+                                <path fillRule="evenodd" d="M5.216 14A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216z"/>
+                                <path d="M4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/>
+                            </svg>
+                        </div>
+                        <h4 className="fw-bolder mb-0" style={{ color: '#0f172a' }}>Explore Teams</h4>
+                    </div>
                     <span className="text-muted small fw-semibold">{teams.length} Teams Recruiting</span>
                 </div>
-                <button className="btn btn-primary fw-bold shadow-sm rounded-3 px-4 py-2" onClick={onCreateTeam}>
+                <button className="btn btn-primary fw-bold shadow-sm rounded-3 px-4 py-2 pressable-btn" onClick={onCreateTeam}>
                     + Create New Project
                 </button>
             </div>
@@ -34,22 +48,27 @@ export const AvailableTeamsGrid: React.FC<AvailableTeamsGridProps> = ({ teams, o
                 </div>
             ) : (
                 <div className="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
-                    {teams.map((team) => {
+                    {teams.map((team, index) => {
                         const fillPercentage = (team.min_users / team.max_users) * 100;
                         const isHovered = hoveredCard === team.team_id;
                         const hasRequested = requestedTeams.includes(team.team_id);
+                        const isRequesting = requestingTeamId === team.team_id;
 
                         return (
-                            <div key={team.team_id} className="col">
+                            <div key={team.team_id} className="col section-enter" style={{ animationDelay: `${index * 70}ms` }}>
                                 <div
-                                    className="card h-100 border-0 bg-white"
+                                    className="card h-100 border-0 interactive-card"
                                     onMouseEnter={() => setHoveredCard(team.team_id)}
                                     onMouseLeave={() => setHoveredCard(null)}
                                     style={{
                                         borderRadius: '1rem',
-                                        boxShadow: isHovered ? '0 1rem 3rem rgba(0,0,0,0.1)' : '0 0.5rem 1.5rem rgba(0,0,0,0.05)',
+                                        boxShadow: isHovered ? '0 16px 48px rgba(15,23,42,0.13)' : '0 4px 20px rgba(15,23,42,0.07)',
                                         transform: isHovered ? 'translateY(-5px)' : 'none',
-                                        transition: 'all 0.3s ease'
+                                        transition: 'all 0.3s ease',
+                                        background: 'rgba(255,255,255,0.88)',
+                                        backdropFilter: 'blur(10px)',
+                                        WebkitBackdropFilter: 'blur(10px)',
+                                        border: '1px solid rgba(255,255,255,0.6)'
                                     }}
                                 >
                                     <div className="card-body p-4 d-flex flex-column">
@@ -76,12 +95,13 @@ export const AvailableTeamsGrid: React.FC<AvailableTeamsGridProps> = ({ teams, o
                                             </div>
 
                                             <button
-                                                className={`btn w-100 fw-bold rounded-3 py-2 ${hasRequested ? 'btn-secondary' : isHovered ? 'btn-primary shadow-sm' : 'btn-light text-primary'}`}
+                                                className={`btn w-100 fw-bold rounded-3 py-2 pressable-btn d-flex align-items-center justify-content-center gap-2 ${hasRequested ? 'btn-secondary' : isHovered ? 'btn-primary shadow-sm' : 'btn-light text-primary'}`}
                                                 style={{ transition: 'all 0.2s ease' }}
                                                 onClick={() => handleRequest(team.team_id)}
-                                                disabled={hasRequested}
+                                                disabled={hasRequested || isRequesting}
                                             >
-                                                {hasRequested ? 'Requested' : 'Request to Join'}
+                                                {isRequesting && <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>}
+                                                {hasRequested ? 'Requested' : isRequesting ? 'Sending...' : 'Request to Join'}
                                             </button>
                                         </div>
                                     </div>

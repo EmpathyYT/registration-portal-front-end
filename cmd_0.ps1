@@ -1,4 +1,7 @@
-﻿
+powershell -Command "Set-Content -Path 'src\App.css' -Encoding UTF8 -Value @'
+/* ============================================================
+   DESIGN SYSTEM - REGISTRATION PORTAL
+   ============================================================ */
 
 :root {
   --brand:         #2563eb;
@@ -34,6 +37,7 @@ body {
     var(--app-bg);
 }
 
+/* NAVBAR */
 .glass-navbar {
   background: linear-gradient(135deg, rgba(255,255,255,0.36), rgba(240,247,255,0.50));
   border-bottom: 1px solid rgba(255,255,255,0.50);
@@ -50,6 +54,7 @@ body {
   box-shadow: var(--shadow-lg);
 }
 
+/* MENU TRIGGER */
 .menu-trigger {
   width: 46px; height: 46px;
   border: 1.5px solid rgba(37,99,235,0.22);
@@ -69,9 +74,10 @@ body {
 .menu-icon { transition: transform 0.25s var(--ease-smooth); }
 .menu-icon.open { transform: rotate(-90deg); }
 
-.menu-action { transition: background-color 0.18s ease, color 0.18s ease; }
-.menu-action:hover { background-color: rgba(37,99,235,0.07); }
+.menu-action { transition: background-color 0.18s ease, color 0.18s ease, padding-left 0.18s ease; }
+.menu-action:hover { background-color: rgba(37,99,235,0.07); padding-left: 1.15rem !important; }
 
+/* PRESSABLE BUTTONS - spring press + ripple */
 .pressable-btn {
   position: relative;
   overflow: hidden;
@@ -99,6 +105,7 @@ body {
 }
 .pressable-btn:not(:disabled):active::after { opacity: 0; }
 
+/* INTERACTIVE CARDS */
 .interactive-card {
   transition: transform 0.22s var(--ease-smooth), box-shadow 0.22s ease;
 }
@@ -107,6 +114,7 @@ body {
   box-shadow: var(--shadow-lg) !important;
 }
 
+/* INPUTS */
 .input-animated {
   transition: box-shadow 0.22s ease, background-color 0.2s ease, border-color 0.2s ease;
 }
@@ -117,6 +125,7 @@ body {
   outline: none;
 }
 
+/* COMMIT GLOW */
 .btn-glowing { animation: pulse-glow 2.2s ease-in-out infinite; }
 @keyframes pulse-glow {
   0%   { box-shadow: 0 0 0 0   rgba(22,163,74,0.55); }
@@ -124,9 +133,11 @@ body {
   100% { box-shadow: 0 0 0 0   rgba(22,163,74,0); }
 }
 
+/* ICON ANIMATIONS */
 .icon-spin-slow { animation: spin-slow 3s linear infinite; }
 @keyframes spin-slow { 100% { transform: rotate(360deg); } }
 
+/* ENTRANCE ANIMATIONS */
 .fade-up        { animation: fade-up       280ms var(--ease-smooth) both; }
 .section-enter  { animation: section-enter 360ms var(--ease-smooth) both; }
 .bounce-in      { animation: bounce-in     420ms var(--ease-spring) both; }
@@ -150,6 +161,7 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* FLOATING NOTICE */
 .floating-notice-zone {
   position: fixed; top: 4.2rem; left: 50%;
   transform: translateX(-50%);
@@ -173,12 +185,14 @@ body {
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+/* SOFT PULSE */
 .soft-pulse { animation: soft-pulse 2s ease-in-out infinite; }
 @keyframes soft-pulse {
   0%,100% { box-shadow: 0 0 0 0   rgba(37,99,235,0); }
   50%     { box-shadow: 0 0 0 8px rgba(37,99,235,0.10); }
 }
 
+/* BUTTON GRADIENT OVERRIDES */
 .btn-primary.pressable-btn {
   background: linear-gradient(135deg, var(--brand), var(--brand-deep));
   border: none; box-shadow: var(--shadow-brand);
@@ -214,12 +228,15 @@ body {
   background: #fff; box-shadow: var(--shadow-md);
 }
 
+/* BADGE TRANSITIONS */
 .badge { transition: background-color 0.3s ease, color 0.3s ease; }
 
+/* RESPONSIVE */
 @media (max-width: 768px) {
   .floating-notice-zone { top: 4.8rem; width: min(94vw, 720px); }
 }
 
+/* REDUCED MOTION */
 @media (prefers-reduced-motion: reduce) {
   .interactive-card, .pressable-btn, .ui-notice,
   .fade-up, .section-enter, .bounce-in,
@@ -228,3 +245,4 @@ body {
     animation: none !important;
   }
 }
+'@"
