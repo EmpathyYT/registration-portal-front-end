@@ -45,9 +45,11 @@ const MOCK_INVITATIONS: Invitation[] = [
 type ProjectDashboardProps = {
     onSwitchPage: () => void;
     onLogout: () => void;
+    isDark: boolean;
+    onToggleDark: () => void;
 };
 
-export default function ProjectDashboard({ onSwitchPage, onLogout }: ProjectDashboardProps) {
+export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onToggleDark }: ProjectDashboardProps) {
     const [notice, setNotice] = useState<NoticeState>(null);
     const [hasTeam, setHasTeam] = useState<boolean>(true);
     const [myTeamData, setMyTeamData] = useState<Team>(MOCK_MY_TEAM);
@@ -128,7 +130,7 @@ export default function ProjectDashboard({ onSwitchPage, onLogout }: ProjectDash
 
     return (
         <div className="min-vh-100 pb-5" style={{ paddingTop: '5.5rem' }}>
-            <PageMenu switchLabel="Registration Page" onSwitchPage={onSwitchPage} onLogout={onLogout} />
+            <PageMenu switchLabel="Registration Page" onSwitchPage={onSwitchPage} onLogout={onLogout} isDark={isDark} onToggleDark={onToggleDark} />
             <FloatingNotice notice={notice} />
             <div className="container" style={{ maxWidth: '1100px' }}>
                 <div className="text-center mb-5 fade-up">

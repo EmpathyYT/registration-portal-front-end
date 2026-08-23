@@ -54,9 +54,11 @@ const hasTimeConflict = (days1: string, time1: string, days2: string, time2: str
 type RegistrationAProps = {
     onSwitchPage: () => void;
     onLogout: () => void;
+    isDark: boolean;
+    onToggleDark: () => void;
 };
 
-export default function RegistrationA({ onSwitchPage, onLogout }: RegistrationAProps) {
+export default function RegistrationA({ onSwitchPage, onLogout, isDark, onToggleDark }: RegistrationAProps) {
     const [notice, setNotice] = useState<NoticeState>(null);
     const [registeredCourses, setRegisteredCourses] = useState<EnrolledCourse[]>([
         {
@@ -162,7 +164,7 @@ export default function RegistrationA({ onSwitchPage, onLogout }: RegistrationAP
 
     return (
         <div className="min-vh-100 pb-5" style={{ paddingTop: '5.5rem' }}>
-            <PageMenu switchLabel="Project Page" onSwitchPage={onSwitchPage} onLogout={onLogout} />
+            <PageMenu switchLabel="Project Page" onSwitchPage={onSwitchPage} onLogout={onLogout} isDark={isDark} onToggleDark={onToggleDark} />
             <FloatingNotice notice={notice} />
             <div className="container" style={{ maxWidth: '1100px' }}>
                 <div className="text-center mb-5 fade-up">

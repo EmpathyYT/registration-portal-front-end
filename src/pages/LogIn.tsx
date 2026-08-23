@@ -1,10 +1,13 @@
 import { useState } from 'react';
+import PageMenu from '../components/layout/PageMenu';
 
 type LogInProps = {
     onLogin: () => void;
+    isDark: boolean;
+    onToggleDark: () => void;
 };
 
-export default function LogIn({ onLogin }: LogInProps) {
+export default function LogIn({ onLogin, isDark, onToggleDark }: LogInProps) {
     const [uniId, setUniId] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -20,12 +23,14 @@ export default function LogIn({ onLogin }: LogInProps) {
     };
 
     return (
-        <div className="min-vh-100 d-flex align-items-center justify-content-center px-3">
-            <div className="card border-0 w-100 bounce-in shadow-lg" style={{ maxWidth: '460px', borderRadius: '1.25rem', backgroundColor: '#ffffff' }}>
+        <div className="min-vh-100 d-flex align-items-center justify-content-center px-3 login-bg" style={{ paddingTop: '5rem' }}>
+            {/* Navbar — dark toggle only, no switch/logout */}
+            <PageMenu isDark={isDark} onToggleDark={onToggleDark} />
+
+            <div className="card login-card border-0 w-100 bounce-in shadow-lg" style={{ maxWidth: '460px', borderRadius: '1.25rem' }}>
                 <div className="card-body p-4 p-md-5">
                     <div className="text-center mb-5">
-                        
-                        <h2 className="fw-bolder mb-1" style={{ color: '#0f172a' }}>Portal Login</h2>
+                        <h2 className="fw-bolder mb-1 page-title">Portal Login</h2>
                         <p className="text-muted mb-0 small">Sign in once, then switch between pages from the top menu.</p>
                     </div>
 
@@ -34,11 +39,12 @@ export default function LogIn({ onLogin }: LogInProps) {
                             <label className="form-label fw-bold text-secondary small text-uppercase" style={{ letterSpacing: '0.06em' }}>UNI ID</label>
                             <input
                                 type="text"
-                                className="form-control form-control-lg bg-light border-0 input-animated"
+                                className="form-control form-control-lg bg-light border-0 input-animated autofill-fix"
                                 placeholder="Enter your University ID"
                                 value={uniId}
                                 onChange={(e) => setUniId(e.target.value)}
                                 style={{ borderRadius: '0.85rem' }}
+                                autoComplete="username"
                                 required
                             />
                         </div>
@@ -48,19 +54,20 @@ export default function LogIn({ onLogin }: LogInProps) {
                             <div className="position-relative">
                                 <input
                                     type={showPassword ? 'text' : 'password'}
-                                    className="form-control form-control-lg bg-light border-0 pe-5 input-animated"
+                                    className="form-control form-control-lg bg-light border-0 pe-5 input-animated autofill-fix"
                                     placeholder="Enter your password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     style={{ borderRadius: '0.85rem' }}
+                                    autoComplete="current-password"
                                     required
                                 />
                                 <button
                                     type="button"
-                                    className="btn border-0 position-absolute end-0 top-50 translate-middle-y me-2 d-flex align-items-center justify-content-center"
+                                    className="btn border-0 position-absolute end-0 top-50 translate-middle-y me-2 d-flex align-items-center justify-content-center eye-btn"
                                     onClick={() => setShowPassword(!showPassword)}
                                     disabled={isSubmitting}
-                                    style={{ color: '#9ca3af', backgroundColor: 'transparent', boxShadow: 'none', padding: '0.5rem', transition: 'color 0.18s ease' }}
+                                    style={{ backgroundColor: 'transparent', boxShadow: 'none', padding: '0.5rem', transition: 'color 0.18s ease' }}
                                 >
                                     {showPassword ? (
                                         <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z" /><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z" /></svg>
