@@ -20,7 +20,7 @@ export const ManageMemberModal: React.FC<ManageMemberModalProps> = ({
 
     return (
         <div className="modal d-block" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }} tabIndex={-1}>
-            <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-dialog modal-dialog-centered animate-slide-fade">
                 <div className="modal-content border-0 rounded-4 shadow-lg">
                     <div className="modal-header border-0 pt-4 px-4 pb-2">
                         <h4 className="modal-title fw-bolder text-dark">Manage: {member.full_name}</h4>

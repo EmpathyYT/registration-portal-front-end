@@ -21,7 +21,7 @@ const CourseSectionsTable: React.FC<CourseSectionsTableProps> = ({ course, secti
 
     return (
         <div className="modal d-block" style={{ backgroundColor: 'rgba(0, 0, 0, 0.4)', backdropFilter: 'blur(4px)', zIndex: 1050 }} tabIndex={-1}>
-            <div className="modal-dialog modal-dialog-centered modal-lg">
+            <div className="modal-dialog modal-dialog-centered modal-lg animate-slide-fade">
                 <div className="modal-content border-0 shadow-lg fade-up" style={{ borderRadius: '1.5rem', background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.6)' }}>
 
                     <div className="modal-header border-0 pt-4 px-4 px-md-5 pb-2 d-flex justify-content-between align-items-start">
