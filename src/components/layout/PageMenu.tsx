@@ -41,34 +41,15 @@ export default function PageMenu({ switchLabel, onSwitchPage, onLogout, isDark, 
     const handleLogout = () => { setIsOpen(false); onLogout?.(); };
 
     return (
-        <div
-            className="position-fixed top-0 start-0 w-100 glass-navbar"
-            style={{
-                zIndex: 1050,
-                transform: isVisible ? 'translateY(0)' : 'translateY(-100%)',
-                transition: 'transform 220ms ease'
-            }}
-        >
-            <div className="container py-2 d-flex justify-content-between align-items-center" style={{ maxWidth: '1100px' }}>
-
-                <div className="d-flex align-items-center gap-2 text-decoration-none" style={{ userSelect: 'none' }}>
-                    {/* BAU official logo */}
-                    <img
-                        src="/bau-logo.png"
-                        alt="Al-Balqa' Applied University"
-                        style={{
-                            width: '36px',
-                            height: '36px',
-                            objectFit: 'contain',
-                            flexShrink: 0,
-                            borderRadius: '6px',
-                        }}
-                    />
+        <div className={`position-fixed top-0 start-0 w-100 glass-navbar ${isVisible ? '' : 'navbar-hidden'}`}>
+            <div className="container py-2 d-flex justify-content-between align-items-center container-main">
+                <div className="d-flex align-items-center gap-2 brand-link">
+                    <img src="/bau-logo.png" alt="Al-Balqa' Applied University" className="brand-logo" />
                     <div>
-                        <span className="fw-bolder navbar-brand-text d-none d-md-block" style={{ fontSize: '0.88rem', letterSpacing: '-0.01em', lineHeight: 1.1 }}>
+                        <span className="fw-bolder navbar-brand-text d-none d-md-block brand-text-desktop">
                             Al-Balqa' Applied University
                         </span>
-                        <span className="fw-bolder navbar-brand-text d-block d-md-none" style={{ fontSize: '0.95rem' }}>
+                        <span className="fw-bolder navbar-brand-text d-block d-md-none brand-text-mobile">
                             BAU Portal
                         </span>
                     </div>
@@ -82,13 +63,7 @@ export default function PageMenu({ switchLabel, onSwitchPage, onLogout, isDark, 
                         aria-label="Open menu"
                         aria-expanded={isOpen}
                     >
-                        <svg
-                            className={`menu-icon ${isOpen ? 'open' : ''}`}
-                            width="18" height="18"
-                            fill="none" stroke="currentColor"
-                            strokeWidth="2.4" strokeLinecap="round"
-                            viewBox="0 0 24 24"
-                        >
+                        <svg className={`menu-icon ${isOpen ? 'open' : ''}`} width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" viewBox="0 0 24 24">
                             <line x1="4" y1="6"  x2="20" y2="6"  />
                             <line x1="4" y1="12" x2="20" y2="12" />
                             <line x1="4" y1="18" x2="20" y2="18" />
@@ -96,49 +71,36 @@ export default function PageMenu({ switchLabel, onSwitchPage, onLogout, isDark, 
                     </button>
 
                     {isOpen && (
-                        <div
-                            className="position-absolute end-0 mt-2 rounded-4 overflow-hidden glass-dropdown animate-slide-fade"
-                            style={{ minWidth: '220px', zIndex: 1100 }}
-                        >
-                            <div style={{ padding: '0.35rem' }}>
-
-                                {/* Dark mode toggle */}
+                        <div className="position-absolute end-0 mt-2 rounded-4 overflow-hidden glass-dropdown animate-slide-fade menu-dropdown">
+                            <div className="menu-dropdown-inner">
                                 <button
                                     type="button"
-                                    className="btn w-100 text-start px-3 py-2 menu-action fw-semibold d-flex align-items-center justify-content-between dark-toggle-btn"
-                                    style={{ borderRadius: '0.6rem' }}
+                                    className="btn w-100 text-start px-3 py-2 menu-action fw-semibold d-flex align-items-center justify-content-between dark-toggle-btn menu-item-btn"
                                     onClick={onToggleDark}
                                 >
                                     <span className="d-flex align-items-center gap-2">
                                         {isDark ? (
-                                            /* Sun icon */
                                             <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16">
                                                 <path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8zm10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0zm-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707zM4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708z"/>
                                             </svg>
                                         ) : (
-                                            /* Moon icon */
                                             <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16">
                                                 <path d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278z"/>
                                             </svg>
                                         )}
                                         {isDark ? 'Light Mode' : 'Dark Mode'}
                                     </span>
-                                    {/* Pill toggle */}
-                                    <span
-                                        className={`dark-toggle-pill ${isDark ? 'active' : ''}`}
-                                        aria-hidden="true"
-                                    >
+                                    <span className={`dark-toggle-pill ${isDark ? 'active' : ''}`} aria-hidden="true">
                                         <span className="dark-toggle-thumb" />
                                     </span>
                                 </button>
 
                                 {onSwitchPage && switchLabel && (
                                     <>
-                                        <div style={{ height: '1px', background: 'rgba(128,128,128,0.15)', margin: '0.2rem 0.5rem' }} />
+                                        <div className="menu-divider" />
                                         <button
                                             type="button"
-                                            className="btn text-decoration-none w-100 text-start px-3 py-2 pressable-btn menu-action fw-semibold menu-text"
-                                            style={{ borderRadius: '0.6rem' }}
+                                            className="btn text-decoration-none w-100 text-start px-3 py-2 pressable-btn menu-action fw-semibold menu-text menu-item-btn"
                                             onClick={handleSwitch}
                                         >
                                             <svg className="me-2" width="15" height="15" fill="currentColor" viewBox="0 0 16 16">
@@ -151,11 +113,10 @@ export default function PageMenu({ switchLabel, onSwitchPage, onLogout, isDark, 
 
                                 {onLogout && (
                                     <>
-                                        <div style={{ height: '1px', background: 'rgba(128,128,128,0.15)', margin: '0.2rem 0.5rem' }} />
+                                        <div className="menu-divider" />
                                         <button
                                             type="button"
-                                            className="btn text-decoration-none text-danger w-100 text-start px-3 py-2 pressable-btn menu-action fw-semibold"
-                                            style={{ borderRadius: '0.6rem' }}
+                                            className="btn text-decoration-none text-danger w-100 text-start px-3 py-2 pressable-btn menu-action fw-semibold menu-item-btn"
                                             onClick={handleLogout}
                                         >
                                             <svg className="me-2" width="15" height="15" fill="currentColor" viewBox="0 0 16 16">

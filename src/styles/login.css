@@ -1,32 +1,48 @@
 /* ─── CORNER DARK TOGGLE (login page) ───────────────────────── */
 .dark-toggle-corner {
-  width: 42px; height: 42px;
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  color: var(--text-muted);
-  background: var(--surface-card);
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--border-subtle);
-  transition: color 0.2s ease, background 0.35s ease, transform 0.15s var(--ease-spring);
-  z-index: 1200;
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted);
+    background: var(--surface-card);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-subtle);
+    transition: color 0.2s ease, background 0.35s ease, transform 0.15s var(--ease-spring);
+    z-index: 1200;
 }
 .dark-toggle-corner:hover { color: var(--brand); transform: scale(1.1); }
 
-/* ─── LOGIN CARD ─────────────────────────────────────────────── */
+/* ─── LOGIN PAGE ─────────────────────────────────────────────── */
 .login-bg  { transition: background 0.35s ease; }
+.login-page { padding-top: 5rem; }
+.login-card-wrapper { max-width: 460px; border-radius: 1.25rem; }
 .login-card {
-  background: var(--surface-card) !important;
-  color: var(--text-main) !important;
-  transition: background 0.35s ease, color 0.35s ease;
+    background: var(--surface-card) !important;
+    color: var(--text-main) !important;
+    transition: background 0.35s ease, color 0.35s ease;
 }
 .login-card .form-control,
 .login-card .form-control:focus {
-  background-color: var(--input-bg) !important;
-  color: var(--input-color) !important;
-  border-color: transparent !important;
+    background-color: var(--input-bg) !important;
+    color: var(--input-color) !important;
+    border-color: transparent !important;
 }
 .login-card .form-control::placeholder { color: var(--text-muted); }
-.page-title { color: var(--text-main); }
+
+/* ─── FORM ELEMENTS ──────────────────────────────────────────── */
+.page-title    { color: var(--text-main); }
+.input-rounded { border-radius: 0.85rem !important; }
+.btn-login     { border-radius: 0.85rem !important; padding: 0.85rem !important; }
+.eye-btn {
+    color: #9ca3af;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    padding: 0.5rem;
+    transition: color 0.18s ease;
+}
+.eye-btn:hover { color: var(--brand); }
+[data-theme="dark"] .eye-btn       { color: var(--text-muted); }
+[data-theme="dark"] .eye-btn:hover { color: var(--brand); }
 
 /* ─── AUTOFILL FIX ──────────────────────────────────────────────
    Browsers apply -webkit-autofill at very high specificity and
@@ -44,15 +60,13 @@ input:-webkit-autofill:active,
 .autofill-fix:-webkit-autofill:hover,
 .autofill-fix:-webkit-autofill:focus,
 .autofill-fix:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 1000px #f1f5f9 inset !important;
-  box-shadow:         0 0 0 1000px #f1f5f9 inset !important;
-  -webkit-text-fill-color: #0f172a !important;
-  color: #0f172a !important;
-  caret-color: #0f172a !important;
-  transition: background-color 99999s ease 0s, color 99999s ease 0s !important;
+    -webkit-box-shadow: 0 0 0 1000px #f1f5f9 inset !important;
+    box-shadow:         0 0 0 1000px #f1f5f9 inset !important;
+    -webkit-text-fill-color: #0f172a !important;
+    color: #0f172a !important;
+    caret-color: #0f172a !important;
+    transition: background-color 99999s ease 0s, color 99999s ease 0s !important;
 }
-
-/* Dark mode autofill — html[data-theme] for highest specificity */
 html[data-theme="dark"] input:-webkit-autofill,
 html[data-theme="dark"] input:-webkit-autofill:hover,
 html[data-theme="dark"] input:-webkit-autofill:focus,
@@ -61,16 +75,10 @@ html[data-theme="dark"] .autofill-fix:-webkit-autofill,
 html[data-theme="dark"] .autofill-fix:-webkit-autofill:hover,
 html[data-theme="dark"] .autofill-fix:-webkit-autofill:focus,
 html[data-theme="dark"] .autofill-fix:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 1000px #1a2035 inset !important;
-  box-shadow:         0 0 0 1000px #1a2035 inset !important;
-  -webkit-text-fill-color: #e2e8f0 !important;
-  color: #e2e8f0 !important;
-  caret-color: #e2e8f0 !important;
-  transition: background-color 99999s ease 0s, color 99999s ease 0s !important;
+    -webkit-box-shadow: 0 0 0 1000px #1a2035 inset !important;
+    box-shadow:         0 0 0 1000px #1a2035 inset !important;
+    -webkit-text-fill-color: #e2e8f0 !important;
+    color: #e2e8f0 !important;
+    caret-color: #e2e8f0 !important;
+    transition: background-color 99999s ease 0s, color 99999s ease 0s !important;
 }
-
-/* ─── EYE BUTTON (password toggle) ─────────────────────────── */
-.eye-btn { color: #9ca3af; }
-.eye-btn:hover { color: var(--brand); }
-[data-theme="dark"] .eye-btn { color: var(--text-muted); }
-[data-theme="dark"] .eye-btn:hover { color: var(--brand); }

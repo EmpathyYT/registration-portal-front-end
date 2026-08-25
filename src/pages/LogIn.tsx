@@ -8,7 +8,6 @@ type LogInProps = {
     onToggleDark: () => void;
 };
 
-// Mock credentials — in real app this comes from Supabase Auth
 const SUPERVISOR_IDS = ['sup001', 'dr001'];
 
 export default function LogIn({ onLogin, isDark, onToggleDark }: LogInProps) {
@@ -20,18 +19,15 @@ export default function LogIn({ onLogin, isDark, onToggleDark }: LogInProps) {
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
-        const role: UserRole = SUPERVISOR_IDS.includes(uniId.trim().toLowerCase())
-            ? 'supervisor'
-            : 'student';
+        const role: UserRole = SUPERVISOR_IDS.includes(uniId.trim().toLowerCase()) ? 'supervisor' : 'student';
         setTimeout(() => { onLogin(role); }, 650);
     };
 
     return (
-        <div className="min-vh-100 d-flex align-items-center justify-content-center px-3 login-bg" style={{ paddingTop: '5rem' }}>
-            {/* Navbar — dark toggle only, no switch/logout */}
+        <div className="min-vh-100 d-flex align-items-center justify-content-center px-3 login-bg login-page">
             <PageMenu isDark={isDark} onToggleDark={onToggleDark} />
 
-            <div className="card login-card border-0 w-100 bounce-in shadow-lg" style={{ maxWidth: '460px', borderRadius: '1.25rem' }}>
+            <div className="card login-card border-0 w-100 bounce-in shadow-lg login-card-wrapper">
                 <div className="card-body p-4 p-md-5">
                     <div className="text-center mb-5">
                         <h2 className="fw-bolder mb-1 page-title">Portal Login</h2>
@@ -40,29 +36,27 @@ export default function LogIn({ onLogin, isDark, onToggleDark }: LogInProps) {
 
                     <form onSubmit={handleLogin}>
                         <div className="mb-4">
-                            <label className="form-label fw-bold text-secondary small text-uppercase" style={{ letterSpacing: '0.06em' }}>UNI ID</label>
+                            <label className="form-label fw-bold text-secondary small text-uppercase label-uppercase">UNI ID</label>
                             <input
                                 type="text"
-                                className="form-control form-control-lg bg-light border-0 input-animated autofill-fix"
+                                className="form-control form-control-lg bg-light border-0 input-animated autofill-fix input-rounded"
                                 placeholder="Enter your University ID"
                                 value={uniId}
                                 onChange={(e) => setUniId(e.target.value)}
-                                style={{ borderRadius: '0.85rem' }}
                                 autoComplete="username"
                                 required
                             />
                         </div>
 
                         <div className="mb-4">
-                            <label className="form-label fw-bold text-secondary small text-uppercase" style={{ letterSpacing: '0.06em' }}>Password</label>
+                            <label className="form-label fw-bold text-secondary small text-uppercase label-uppercase">Password</label>
                             <div className="position-relative">
                                 <input
                                     type={showPassword ? 'text' : 'password'}
-                                    className="form-control form-control-lg bg-light border-0 pe-5 input-animated autofill-fix"
+                                    className="form-control form-control-lg bg-light border-0 pe-5 input-animated autofill-fix input-rounded"
                                     placeholder="Enter your password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    style={{ borderRadius: '0.85rem' }}
                                     autoComplete="current-password"
                                     required
                                 />
@@ -71,7 +65,6 @@ export default function LogIn({ onLogin, isDark, onToggleDark }: LogInProps) {
                                     className="btn border-0 position-absolute end-0 top-50 translate-middle-y me-2 d-flex align-items-center justify-content-center eye-btn"
                                     onClick={() => setShowPassword(!showPassword)}
                                     disabled={isSubmitting}
-                                    style={{ backgroundColor: 'transparent', boxShadow: 'none', padding: '0.5rem', transition: 'color 0.18s ease' }}
                                 >
                                     {showPassword ? (
                                         <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z" /><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z" /></svg>
@@ -84,16 +77,14 @@ export default function LogIn({ onLogin, isDark, onToggleDark }: LogInProps) {
 
                         <button
                             type="submit"
-                            className="btn btn-success btn-lg w-100 fw-bold pressable-btn d-flex align-items-center justify-content-center gap-2"
-                            style={{ borderRadius: '0.85rem', padding: '0.85rem' }}
+                            className="btn btn-success btn-lg w-100 fw-bold pressable-btn d-flex align-items-center justify-content-center gap-2 btn-login"
                             disabled={isSubmitting}
                         >
                             {isSubmitting && <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>}
                             {isSubmitting ? 'Signing In...' : 'Sign In'}
                         </button>
 
-                        {/* Demo hint */}
-                        <p className="text-center text-muted small mt-3 mb-0" style={{ fontSize: '0.78rem' }}>
+                        <p className="text-center text-muted mt-3 mb-0 text-hint">
                             Demo: use <code>SUP001</code> as Uni ID to log in as a supervisor
                         </p>
                     </form>

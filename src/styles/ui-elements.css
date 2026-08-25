@@ -1,0 +1,153 @@
+/* ─── ICON BOXES ──────────────────────────────────────────────── */
+.icon-box-sm {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: linear-gradient(135deg, #3b7cf8, #1d4ed8);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    box-shadow: 0 3px 8px rgba(37,99,235,0.25);
+}
+.icon-box-md {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: linear-gradient(135deg, #3b7cf8, #1d4ed8);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(37,99,235,0.25);
+}
+.icon-box-lg {
+    width: 46px; height: 46px; border-radius: 12px;
+    background: linear-gradient(135deg, #3b7cf8, #1d4ed8);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(37,99,235,0.28);
+}
+.icon-box-sup {
+    width: 52px; height: 52px; border-radius: 14px;
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    box-shadow: 0 6px 18px rgba(124,58,237,0.35);
+}
+
+/* ─── AVATAR ──────────────────────────────────────────────────── */
+.avatar-circle {
+    width: 48px; height: 48px; font-size: 1.1rem; font-weight: 700;
+    border-radius: 50%; background: linear-gradient(135deg, #3b7cf8, #1d4ed8);
+    box-shadow: 0 4px 12px rgba(37,99,235,0.25);
+    color: white; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.icon-circle {
+    width: 48px; height: 48px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+
+/* ─── GLASS CARDS ─────────────────────────────────────────────── */
+.glass-card {
+    border-radius: 1.25rem;
+    box-shadow: 0 8px 32px rgba(15,23,42,0.09);
+    background: rgba(255,255,255,0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.6);
+}
+.glass-card-sm {
+    border-radius: 1rem;
+    box-shadow: 0 4px 20px rgba(15,23,42,0.07);
+    background: rgba(255,255,255,0.88);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.6);
+}
+.supervisor-card {
+    border-radius: 1.25rem;
+    background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(139,92,246,0.06));
+    border: 1px solid rgba(99,102,241,0.18);
+    box-shadow: 0 8px 32px rgba(99,102,241,0.10);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+/* ─── CARD ACCENT BORDERS ─────────────────────────────────────── */
+.card-border-brand   { border-left: 3px solid #3b7cf8; }
+.card-border-success { border-left: 3px solid #22c55e; }
+
+/* ─── GRADIENT BADGES ─────────────────────────────────────────── */
+.badge-pending {
+    background: linear-gradient(135deg, #f59e0b, #ef4444);
+    color: #fff; font-size: 0.72rem; padding: 3px 10px; border-radius: 999px;
+    letter-spacing: 0.02em;
+}
+.badge-pending.pulse {
+    animation: pulse-glow-orange 2s infinite;
+    box-shadow: 0 3px 10px rgba(239,68,68,0.40);
+}
+.badge-position {
+    background: linear-gradient(135deg, #3b7cf8, #8b5cf6);
+    color: #fff; font-size: 0.68rem; padding: 2px 8px; border-radius: 999px;
+    letter-spacing: 0.04em;
+}
+.badge-upcoming {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: #fff; font-size: 0.72rem; padding: 3px 10px; border-radius: 999px;
+    letter-spacing: 0.02em; box-shadow: 0 3px 8px rgba(22,163,74,0.30);
+}
+.badge-supervisor {
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    color: #fff; font-size: 0.70rem; padding: 3px 10px; border-radius: 999px;
+    letter-spacing: 0.04em;
+}
+
+/* ─── SUPERVISOR STATS BADGES ─────────────────────────────────── */
+.badge-stat { border-radius: 999px; padding: 5px 12px; font-size: 0.78rem; display: flex; align-items: center; gap: 4px; }
+.badge-stat-blue   { background: rgba(37,99,235,0.10);   color: var(--brand); }
+.badge-stat-purple { background: rgba(124,58,237,0.10);  color: #7c3aed; }
+
+/* ─── STATUS BADGES ───────────────────────────────────────────── */
+.status-active     { background: rgba(22,163,74,0.12);   color: #16a34a; }
+.status-recruiting { background: rgba(245,158,11,0.12);  color: #d97706; }
+.status-completed  { background: rgba(107,114,128,0.12); color: #6b7280; }
+.status-default    { background: rgba(107,114,128,0.10); color: #6b7280; }
+
+/* ─── SECTION HEADER LABEL ────────────────────────────────────── */
+.section-label { letter-spacing: 0.06em; font-size: 0.82rem; text-transform: uppercase; }
+
+/* ─── LABEL UPPERCASE ─────────────────────────────────────────── */
+.label-uppercase { letter-spacing: 0.06em; }
+
+/* ─── TEXT SIZES ──────────────────────────────────────────────── */
+.text-xs   { font-size: 0.72rem !important; }
+.text-hint { font-size: 0.78rem; }
+
+/* ─── PROGRESS BAR ────────────────────────────────────────────── */
+.progress-slim            { height: 8px; border-radius: 10px; }
+.progress-slim .progress-bar { border-radius: 10px; }
+
+/* ─── SUPERVISOR TEAM SELECTOR ────────────────────────────────── */
+.supervisor-name  { font-size: 1.05rem; color: var(--text-main); }
+.team-select-wrap { min-width: 0; flex-grow: 1; max-width: 420px; }
+.team-select      { border-radius: 0.8rem !important; font-size: 0.92rem !important; }
+.stats-strip      { border-top: 1px solid rgba(99,102,241,0.15); }
+
+/* ─── INVITE SUPERVISOR ROW ───────────────────────────────────── */
+.invite-sup-wrap  { max-width: 420px; }
+.supervisor-select { border-radius: 0.5rem !important; cursor: pointer; }
+.send-invite-btn  { width: 110px; transition: all 0.3s ease; }
+
+/* ─── TEAM CARD: hover makes join button look primary ─────────── */
+.team-card:hover .join-action-btn:not(:disabled):not(.btn-secondary) {
+    background: linear-gradient(135deg, var(--brand), var(--brand-deep)) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+    box-shadow: var(--shadow-brand) !important;
+}
+
+/* ─── INVITE MEMBER DASHED BUTTON ─────────────────────────────── */
+.invite-member-btn { border: 2px dashed #cfe2ff !important; }
+[data-theme="dark"] .invite-member-btn { border-color: rgba(59,130,246,0.30) !important; }
+
+/* ─── DARK MODE OVERRIDES FOR NEW CLASSES ─────────────────────── */
+[data-theme="dark"] .glass-card,
+[data-theme="dark"] .glass-card-sm {
+    background: var(--surface-card) !important;
+    border-color: var(--border-subtle) !important;
+}
+[data-theme="dark"] .supervisor-card {
+    background: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.08)) !important;
+    border-color: rgba(99,102,241,0.25) !important;
+}
+[data-theme="dark"] .supervisor-name { color: var(--text-main); }

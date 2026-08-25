@@ -1,8 +1,3 @@
-/**
- * App.css — style entry point
- * All rules have been moved into focused files under src/styles/.
- * Import order matters: variables first, then globals, then specifics.
- */
 @import './styles/variables.css';
 @import './styles/globals.css';
 @import './styles/navbar.css';
@@ -10,4 +5,5 @@
 @import './styles/animations.css';
 @import './styles/buttons.css';
 @import './styles/cards.css';
+@import './styles/ui-elements.css';
 @import './styles/dark-overrides.css';

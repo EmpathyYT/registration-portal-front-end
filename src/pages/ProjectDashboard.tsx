@@ -310,7 +310,7 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
     const showReservationModal = reservationToEdit !== null; // null = closed, undefined or Reservation = open
 
     return (
-        <div className="min-vh-100 pb-5" style={{ paddingTop: '5.5rem' }}>
+        <div className="min-vh-100 pb-5 page-body">
             <PageMenu
                 switchLabel="Registration Page"
                 onSwitchPage={onSwitchPage}
@@ -320,7 +320,7 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
             />
             <FloatingNotice notice={notice} />
 
-            <div className="container" style={{ maxWidth: '1100px' }}>
+            <div className="container container-main">
 
                 {isSupervisor ? (
                     /* ══ SUPERVISOR VIEW ═══════════════════════ */
