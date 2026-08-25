@@ -1,8 +1,9 @@
-import type { Team, TeamMember } from '../../types/project';
+import type { Team, TeamMember, Reservation } from '../../types/project';
 
 export interface SupervisedTeamData {
     team: Team;
     members: TeamMember[];
+    reservations: Reservation[];
 }
 
 interface SupervisorTeamSelectorProps {

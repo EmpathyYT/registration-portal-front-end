@@ -1,0 +1,126 @@
+/* ─── DARK MODE OVERRIDES ────────────────────────────────────────
+   These rules fix Bootstrap defaults + hardcoded inline colors
+   that cannot be reached via CSS variables alone.
+   All selectors prefixed with [data-theme="dark"].
+──────────────────────────────────────────────────────────────── */
+
+/* Headings — override inline style={{ color:'#0f172a' }} */
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6 { color: var(--text-main) !important; }
+
+[data-theme="dark"] .fw-bolder,
+[data-theme="dark"] .fw-bold { color: inherit; }
+
+/* ─── CARDS & SURFACES ───────────────────────────────────────── */
+[data-theme="dark"] .card,
+[data-theme="dark"] .modal-content {
+  background-color: var(--surface-card) !important;
+  color: var(--text-main) !important;
+  border-color: var(--border-subtle) !important;
+}
+[data-theme="dark"] .card-body  { color: var(--text-main); }
+[data-theme="dark"] .card-header.bg-transparent { background: transparent !important; }
+
+[data-theme="dark"] .bg-light   { background-color: rgba(255,255,255,0.05) !important; color: var(--text-main) !important; }
+[data-theme="dark"] .bg-white   { background-color: var(--surface-card) !important;    color: var(--text-main) !important; }
+
+[data-theme="dark"] .bg-primary.bg-opacity-10 { background-color: rgba(59,130,246,0.12) !important; }
+
+/* ─── TEXT ───────────────────────────────────────────────────── */
+[data-theme="dark"] .text-dark      { color: var(--text-main) !important; }
+[data-theme="dark"] .text-muted     { color: var(--text-muted) !important; }
+[data-theme="dark"] .text-secondary { color: var(--text-muted) !important; }
+
+/* ─── BORDERS & DIVIDERS ─────────────────────────────────────── */
+[data-theme="dark"] .border { border-color: var(--border-subtle) !important; }
+[data-theme="dark"] hr      { border-color: var(--border-subtle); }
+
+/* ─── LIST GROUP ─────────────────────────────────────────────── */
+[data-theme="dark"] .list-group-item {
+  background-color: rgba(255,255,255,0.04) !important;
+  color: var(--text-main) !important;
+  border-color: var(--border-subtle) !important;
+}
+
+/* ─── INPUTS ─────────────────────────────────────────────────── */
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-select {
+  background-color: var(--input-bg) !important;
+  color: var(--input-color) !important;
+  border-color: var(--border-subtle) !important;
+}
+[data-theme="dark"] .form-control::placeholder { color: var(--text-muted); }
+
+/* ─── BUTTONS ────────────────────────────────────────────────── */
+[data-theme="dark"] .btn-light {
+  background-color: rgba(255,255,255,0.08) !important;
+  border-color: rgba(255,255,255,0.10) !important;
+  color: var(--text-main) !important;
+}
+[data-theme="dark"] .btn-light:hover  { background-color: rgba(255,255,255,0.13) !important; }
+[data-theme="dark"] .btn-light.text-primary { color: var(--brand) !important; }
+[data-theme="dark"] .btn-light.text-success { color: var(--accent) !important; }
+[data-theme="dark"] .btn-light.text-danger  { color: var(--danger) !important; }
+
+/* btn-white (Open Link) */
+[data-theme="dark"] .btn-white {
+  background-color: rgba(255,255,255,0.08) !important;
+  color: var(--brand) !important;
+  border-color: rgba(255,255,255,0.10) !important;
+}
+
+/* btn-outline-success */
+[data-theme="dark"] .btn-outline-success { color: var(--accent); border-color: var(--accent); }
+[data-theme="dark"] .btn-outline-success:hover { background-color: var(--accent); color: #fff; }
+
+/* btn-outline-danger */
+[data-theme="dark"] .btn-outline-danger { color: var(--danger); border-color: var(--danger); }
+
+[data-theme="dark"] .btn-close { filter: invert(1) grayscale(1); }
+[data-theme="dark"] .btn[style*="transparent"] { color: var(--text-muted) !important; }
+
+/* Dashed invite button border */
+[data-theme="dark"] .btn-light.text-primary[style*="dashed"] {
+  border-color: rgba(59,130,246,0.30) !important;
+}
+
+/* ─── BADGES ─────────────────────────────────────────────────── */
+[data-theme="dark"] .badge.bg-white {
+  background-color: rgba(255,255,255,0.08) !important;
+  color: var(--text-muted) !important;
+  border-color: var(--border-subtle) !important;
+}
+
+/* ─── MODAL ──────────────────────────────────────────────────── */
+[data-theme="dark"] .modal-header,
+[data-theme="dark"] .modal-body,
+[data-theme="dark"] .modal-footer {
+  border-color: var(--border-subtle) !important;
+  color: var(--text-main) !important;
+}
+
+/* ─── PROGRESS BAR ───────────────────────────────────────────── */
+[data-theme="dark"] .progress { background-color: rgba(255,255,255,0.08) !important; }
+
+/* ─── ALERT ──────────────────────────────────────────────────── */
+[data-theme="dark"] .alert {
+  background-color: var(--surface-card) !important;
+  color: var(--text-muted) !important;
+  border-color: var(--border-subtle) !important;
+}
+
+/* ─── TABLE ──────────────────────────────────────────────────── */
+[data-theme="dark"] .table {
+  --bs-table-bg: transparent;
+  --bs-table-striped-bg: rgba(255,255,255,0.03);
+  color: var(--text-main);
+  border-color: var(--border-subtle);
+}
+[data-theme="dark"] table  { color: var(--text-main); }
+[data-theme="dark"] .table-light { background-color: var(--surface-muted) !important; color: var(--text-main) !important; }
+[data-theme="dark"] thead th { color: var(--text-muted) !important; border-color: var(--border-subtle) !important; }
+[data-theme="dark"] td, [data-theme="dark"] th { border-color: var(--border-subtle) !important; color: var(--text-main) !important; }

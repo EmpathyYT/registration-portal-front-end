@@ -1,0 +1,79 @@
+/* ─── GLASSMORPHISM NAVBAR ───────────────────────────────────── */
+.glass-navbar {
+  background: var(--navbar-bg);
+  border-bottom: 1px solid var(--navbar-border);
+  box-shadow: var(--navbar-shadow);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  transition: background 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+}
+
+.navbar-brand-text { color: var(--text-main); }
+
+/* ─── DROPDOWN ──────────────────────────────────────────────── */
+.glass-dropdown {
+  background: var(--dropdown-bg);
+  border: 1px solid var(--dropdown-border);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  box-shadow: var(--shadow-lg);
+  transition: background 0.25s ease;
+}
+
+.menu-text { color: var(--text-main); }
+
+/* ─── MENU TRIGGER BUTTON ───────────────────────────────────── */
+.menu-trigger {
+  width: 46px; height: 46px;
+  border: 1.5px solid rgba(37,99,235,0.22);
+  border-radius: 999px;
+  color: var(--brand-deep);
+  background: linear-gradient(145deg, rgba(255,255,255,0.97), rgba(230,242,255,0.90));
+  box-shadow: var(--shadow-brand);
+  transition: color 0.2s, border-color 0.2s, box-shadow 0.2s,
+              transform 0.15s var(--ease-spring), background 0.35s ease;
+}
+[data-theme="dark"] .menu-trigger {
+  color: var(--brand);
+  background: linear-gradient(145deg, rgba(30,37,55,0.97), rgba(17,24,39,0.90));
+  border-color: rgba(59,130,246,0.30);
+}
+.menu-trigger:hover {
+  border-color: rgba(37,99,235,0.4);
+  box-shadow: 0 10px 28px rgba(37,99,235,0.30);
+  transform: scale(1.07);
+}
+.menu-trigger:active { transform: scale(0.93) !important; }
+
+/* ─── MENU ICON & ITEMS ─────────────────────────────────────── */
+.menu-icon { transition: transform 0.25s var(--ease-smooth); }
+.menu-icon.open { transform: rotate(-90deg); }
+
+.menu-action { transition: background-color 0.18s ease, color 0.18s ease; }
+.menu-action:hover { background-color: rgba(99,102,241,0.08); }
+
+/* ─── DARK TOGGLE PILL ──────────────────────────────────────── */
+.dark-toggle-btn { color: var(--text-main); }
+.dark-toggle-btn:hover { background-color: rgba(99,102,241,0.08); }
+
+.dark-toggle-pill {
+  display: inline-flex;
+  align-items: center;
+  width: 36px; height: 20px;
+  border-radius: 999px;
+  background: rgba(148,163,184,0.35);
+  padding: 2px;
+  transition: background 0.28s var(--ease-smooth);
+  flex-shrink: 0;
+}
+.dark-toggle-pill.active { background: var(--brand); }
+
+.dark-toggle-thumb {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  transform: translateX(0);
+  transition: transform 0.28s var(--ease-spring), box-shadow 0.2s ease;
+}
+.dark-toggle-pill.active .dark-toggle-thumb { transform: translateX(16px); }
