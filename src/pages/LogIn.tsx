@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { UserRole } from '../App';
 import PageMenu from '../components/layout/PageMenu';
+import FloatingNotice, { type NoticeState } from '../components/layout/FloatingNotice';
+import * as api from '../lib/api';
 
 type LogInProps = {
     onLogin: (role: UserRole) => void;
@@ -8,24 +10,38 @@ type LogInProps = {
     onToggleDark: () => void;
 };
 
-const SUPERVISOR_IDS = ['sup001', 'dr001'];
-
 export default function LogIn({ onLogin, isDark, onToggleDark }: LogInProps) {
     const [uniId, setUniId] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [notice, setNotice] = useState<NoticeState>(null);
 
-    const handleLogin = (e: React.FormEvent) => {
+    useEffect(() => {
+        if (!notice) return;
+        const id = window.setTimeout(() => setNotice(null), 2600);
+        return () => window.clearTimeout(id);
+    }, [notice]);
+
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
-        const role: UserRole = SUPERVISOR_IDS.includes(uniId.trim().toLowerCase()) ? 'supervisor' : 'student';
-        setTimeout(() => { onLogin(role); }, 650);
+        setNotice(null);
+        try {
+            const user = await api.login(uniId.trim(), password);
+            const role: UserRole = user.role === 'supervisor' ? 'supervisor' : 'student';
+            onLogin(role);
+        } catch {
+            setNotice({ type: 'error', message: 'Invalid University ID or password. Please try again.' });
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
         <div className="min-vh-100 d-flex align-items-center justify-content-center px-3 login-bg login-page">
             <PageMenu isDark={isDark} onToggleDark={onToggleDark} />
+            <FloatingNotice notice={notice} />
 
             <div className="card login-card border-0 w-100 bounce-in shadow-lg login-card-wrapper">
                 <div className="card-body p-4 p-md-5">
@@ -83,10 +99,6 @@ export default function LogIn({ onLogin, isDark, onToggleDark }: LogInProps) {
                             {isSubmitting && <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>}
                             {isSubmitting ? 'Signing In...' : 'Sign In'}
                         </button>
-
-                        <p className="text-center text-muted mt-3 mb-0 text-hint">
-                            Demo: use <code>SUP001</code> as Uni ID to log in as a supervisor
-                        </p>
                     </form>
                 </div>
             </div>

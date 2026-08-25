@@ -2,7 +2,11 @@
 *, *::before, *::after { -webkit-tap-highlight-color: transparent; }
 html, body, #root { min-height: 100%; }
 
-html { transition: background-color 0.35s ease, color 0.35s ease; }
+html {
+    transition: background-color 0.35s ease, color 0.35s ease;
+    scrollbar-gutter: stable;
+    overflow-y: scroll;
+}
 
 body {
     margin: 0;

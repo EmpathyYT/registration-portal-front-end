@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Team, TeamMember, Invitation, Reservation } from '../types/project';
 import type { UserRole } from '../App';
+import * as api from '../lib/api';
 import MyTeamPanel from '../components/project/MyTeamPanel';
 import AvailableTeamsGrid from '../components/project/AvailableTeamsGrid';
 import InvitationsFeed from '../components/project/InvitationsFeed';
@@ -13,102 +14,6 @@ import SupervisorTeamSelector, { type SupervisedTeamData } from '../components/p
 import PageMenu from '../components/layout/PageMenu';
 import FloatingNotice, { type NoticeState } from '../components/layout/FloatingNotice';
 
-// ─── STUDENT MOCK DATA ─────────────────────────────────────────
-// Query: SELECT teams.*, users.full_name AS supervisor_name
-//        FROM teams LEFT JOIN users ON users.id = teams.supervisor_id
-//        WHERE team_members.user_id = $studentId
-const STUDENT_USER_ID = 'u1';
-
-const MOCK_MY_TEAM: Team = {
-    team_id: 1,
-    project_title: 'University Course Registration System',
-    status: 'Active',
-    min_users: 3,
-    max_users: 4,
-    introduction_link: 'https://docs.google.com/document/d/mock',
-    supervisor_id: 'sup1',
-    supervisor_name: 'Dr. Mohammed Ali',
-};
-
-const MOCK_TEAM_MEMBERS: TeamMember[] = [
-    { team_id: 1, user_id: 'u1', full_name: 'Ammar Ahmad Sameed', university_id: '20221001', role: 'student', team_role: 'Team Leader' },
-    { team_id: 1, user_id: 'u2', full_name: 'Basel Ibrahim',      university_id: '20221002', role: 'student', team_role: 'Backend Dev' },
-    { team_id: 1, user_id: 'u3', full_name: 'Mohammed Khalid',    university_id: '20221003', role: 'student', team_role: 'Full Stack' },
-];
-
-// Query: SELECT * FROM reservations WHERE team_id = $teamId
-const MOCK_RESERVATIONS: Reservation[] = [
-    { team_id: 1, location: 'Hall A', reservation_time: '2026-09-15T10:00:00Z' },
-    { team_id: 1, location: 'Lab 101', reservation_time: '2026-09-22T14:00:00Z' },
-];
-
-const MOCK_AVAILABLE_TEAMS: Team[] = [
-    { team_id: 2, project_title: 'AI Study Assistant', status: 'Recruiting', min_users: 1, max_users: 4, introduction_link: '', supervisor_id: '' },
-];
-
-// Query: SELECT invitations.*, users.full_name AS sender_full_name, users.university_id AS sender_university_id
-//        FROM invitations JOIN users ON users.id = invitations.sender_user_id
-//        WHERE invitations.receiver_user_id = $studentId
-const MOCK_STUDENT_INVITATIONS: Invitation[] = [
-    { sender_user_id: 'u9',  receiver_user_id: 'u1', created_at: '2026-08-15T10:00:00Z', sender_full_name: 'Yousef Al-Ahmad', sender_university_id: '20221009' },
-    { sender_user_id: 'u12', receiver_user_id: 'u1', created_at: '2026-08-16T09:30:00Z', sender_full_name: 'Nour Khalil',      sender_university_id: '20221012' },
-    { sender_user_id: 'u14', receiver_user_id: 'u1', created_at: '2026-08-17T12:45:00Z', sender_full_name: 'Rana Ibrahim',     sender_university_id: '20221014' },
-    { sender_user_id: 'u15', receiver_user_id: 'u1', created_at: '2026-08-18T08:20:00Z', sender_full_name: 'Tariq Al-Masri',  sender_university_id: '20221015' },
-];
-
-// ─── SUPERVISOR MOCK DATA ──────────────────────────────────────
-const SUPERVISOR_USER_ID = 'sup1';
-const SUPERVISOR_NAME = 'Dr. Mohammed Ali';
-
-const MOCK_SUPERVISOR_INVITATIONS: Invitation[] = [
-    { sender_user_id: 'u4', receiver_user_id: 'sup1', created_at: '2026-08-19T11:00:00Z', sender_full_name: 'Sara Al-Masri', sender_university_id: '20221004' },
-    { sender_user_id: 'u6', receiver_user_id: 'sup1', created_at: '2026-08-20T14:30:00Z', sender_full_name: 'Ahmad Yousef',  sender_university_id: '20221006' },
-];
-
-// Query: SELECT teams.*, users.full_name AS supervisor_name
-//        FROM teams LEFT JOIN users ON users.id = teams.supervisor_id
-//        WHERE teams.supervisor_id = $supervisorId
-// Note: status ('Active'/'Recruiting') comes from teams.status (project_status enum in DB)
-const MOCK_SUPERVISED_TEAMS: SupervisedTeamData[] = [
-    {
-        team: { team_id: 1, project_title: 'University Course Registration System', status: 'Active', min_users: 3, max_users: 4, introduction_link: 'https://docs.google.com/document/d/mock1', supervisor_id: SUPERVISOR_USER_ID, supervisor_name: SUPERVISOR_NAME },
-        members: [
-            { team_id: 1, user_id: 'u1', full_name: 'Ammar Ahmad Sameed', university_id: '20221001', role: 'student', team_role: 'Team Leader' },
-            { team_id: 1, user_id: 'u2', full_name: 'Basel Ibrahim',       university_id: '20221002', role: 'student', team_role: 'Backend Dev' },
-            { team_id: 1, user_id: 'u3', full_name: 'Mohammed Khalid',     university_id: '20221003', role: 'student', team_role: 'Full Stack' },
-        ],
-        reservations: [
-            { team_id: 1, location: 'Hall B', reservation_time: '2026-09-18T09:00:00Z' },
-        ],
-    },
-    {
-        team: { team_id: 2, project_title: 'AI-Powered Study Assistant', status: 'Active', min_users: 2, max_users: 4, introduction_link: '', supervisor_id: SUPERVISOR_USER_ID, supervisor_name: SUPERVISOR_NAME },
-        members: [
-            { team_id: 2, user_id: 'u4', full_name: 'Sara Al-Masri', university_id: '20221004', role: 'student', team_role: 'Team Leader' },
-            { team_id: 2, user_id: 'u5', full_name: 'Khalid Nasser',  university_id: '20221005', role: 'student', team_role: 'Frontend Dev' },
-        ],
-        reservations: [],
-    },
-    {
-        team: { team_id: 3, project_title: 'Smart Campus Navigation System', status: 'Recruiting', min_users: 4, max_users: 5, introduction_link: '', supervisor_id: SUPERVISOR_USER_ID, supervisor_name: SUPERVISOR_NAME },
-        members: [
-            { team_id: 3, user_id: 'u6', full_name: 'Ahmad Yousef', university_id: '20221006', role: 'student', team_role: 'Team Leader' },
-            { team_id: 3, user_id: 'u7', full_name: 'Lina Hamdan',  university_id: '20221007', role: 'student', team_role: 'Backend Dev' },
-            { team_id: 3, user_id: 'u8', full_name: 'Omar Saleh',   university_id: '20221008', role: 'student', team_role: 'Frontend Dev' },
-            { team_id: 3, user_id: 'u9', full_name: 'Rami Aziz',    university_id: '20221009', role: 'student', team_role: 'Mobile Dev' },
-        ],
-        reservations: [],
-    },
-];
-
-// Query: SELECT * FROM teams WHERE supervisor_id IS NULL
-const MOCK_UNSUPERVISED_TEAMS: Team[] = [
-    { team_id: 10, project_title: 'Mobile Banking App',         status: 'Recruiting', min_users: 1, max_users: 4, introduction_link: '', supervisor_id: '' },
-    { team_id: 11, project_title: 'E-Learning Platform',        status: 'Active',     min_users: 2, max_users: 5, introduction_link: '', supervisor_id: '' },
-    { team_id: 12, project_title: 'Hospital Management System', status: 'Recruiting', min_users: 2, max_users: 4, introduction_link: '', supervisor_id: '' },
-];
-
-// ─── COMPONENT ────────────────────────────────────────────────
 type ProjectDashboardProps = {
     onSwitchPage?: () => void;
     onLogout: () => void;
@@ -120,31 +25,29 @@ type ProjectDashboardProps = {
 export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onToggleDark, userRole }: ProjectDashboardProps) {
     const isSupervisor = userRole === 'supervisor';
 
+    const [loading, setLoading] = useState(true);
+    const [currentUserId, setCurrentUserId] = useState('');
+    const [currentUserName, setCurrentUserName] = useState('');
     const [notice, setNotice] = useState<NoticeState>(null);
 
-    // Student state
-    const [hasTeam, setHasTeam] = useState(true);
-    const [myTeamData, setMyTeamData] = useState<Team>(MOCK_MY_TEAM);
-    const [teamMembers, setTeamMembers] = useState<TeamMember[]>(MOCK_TEAM_MEMBERS);
-    const [reservations, setReservations] = useState<Reservation[]>(MOCK_RESERVATIONS);
+    const [hasTeam, setHasTeam] = useState(false);
+    const [myTeamData, setMyTeamData] = useState<Team | null>(null);
+    const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+    const [reservations, setReservations] = useState<Reservation[]>([]);
+    const [availableTeams, setAvailableTeams] = useState<Team[]>([]);
+    const [invitations, setInvitations] = useState<Invitation[]>([]);
 
-    // Invitations
-    const [invitations, setInvitations] = useState<Invitation[]>(
-        isSupervisor ? MOCK_SUPERVISOR_INVITATIONS : MOCK_STUDENT_INVITATIONS
-    );
+    const [supervisedTeams, setSupervisedTeams] = useState<SupervisedTeamData[]>([]);
+    const [selectedSupTeamId, setSelectedSupTeamId] = useState<number | null>(null);
+    const [unsupervisedTeams, setUnsupervisedTeams] = useState<Team[]>([]);
 
-    // Supervisor state
-    const [supervisedTeams, setSupervisedTeams] = useState<SupervisedTeamData[]>(MOCK_SUPERVISED_TEAMS);
-    const [selectedSupTeamId, setSelectedSupTeamId] = useState<number>(MOCK_SUPERVISED_TEAMS[0].team.team_id);
-    const [unsupervisedTeams, setUnsupervisedTeams] = useState<Team[]>(MOCK_UNSUPERVISED_TEAMS);
+    const [showCreateModal, setShowCreateModal]     = useState(false);
+    const [showInviteModal, setShowInviteModal]     = useState(false);
+    const [showDocModal, setShowDocModal]           = useState(false);
+    const [memberToManage, setMemberToManage]       = useState<TeamMember | null>(null);
+    const [reservationToEdit, setReservationToEdit] = useState<Reservation | null | undefined>(null);
 
-    // Modal state
-    const [showCreateModal, setShowCreateModal]       = useState(false);
-    const [showInviteModal, setShowInviteModal]       = useState(false);
-    const [showDocModal, setShowDocModal]             = useState(false);
-    const [memberToManage, setMemberToManage]         = useState<TeamMember | null>(null);
-    // Reservation modal — null = closed, undefined = create mode, Reservation = edit mode
-    const [reservationToEdit, setReservationToEdit]   = useState<Reservation | null | undefined>(null);
+    const showNotice = (n: NoticeState) => setNotice(n);
 
     useEffect(() => {
         if (!notice) return;
@@ -152,114 +55,300 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
         return () => window.clearTimeout(id);
     }, [notice]);
 
-    // ── Invitation handlers ────────────────────────────────────
-    const handleAcceptInvite = (senderUserId: string) => {
-        setInvitations(prev => prev.filter(i => i.sender_user_id !== senderUserId));
-        if (!isSupervisor) setHasTeam(true);
-        setNotice({ type: 'success', message: 'Invitation accepted.' });
-    };
-    const handleDeclineInvite = (senderUserId: string) => {
-        setInvitations(prev => prev.filter(i => i.sender_user_id !== senderUserId));
-        setNotice({ type: 'info', message: 'Invitation declined.' });
+    useEffect(() => {
+        async function load() {
+            try {
+                const session = await api.getCurrentSession();
+                if (!session) return;
+                setCurrentUserId(session.user_id);
+                setCurrentUserName(session.full_name);
+
+                const invites = await api.getPendingInvitations(session.user_id);
+                setInvitations(invites);
+
+                if (isSupervisor) {
+                    const [supervised, unsupervised] = await Promise.all([
+                        api.getSupervisedTeams(session.user_id),
+                        api.getUnsupervisedTeams(),
+                    ]);
+                    const enriched: SupervisedTeamData[] = await Promise.all(
+                        supervised.map(async (team) => {
+                            const [members, teamReservations] = await Promise.all([
+                                api.getTeamMembers(team.team_id),
+                                api.getTeamReservations(team.team_id),
+                            ]);
+                            return { team, members, reservations: teamReservations };
+                        })
+                    );
+                    setSupervisedTeams(enriched);
+                    setUnsupervisedTeams(unsupervised);
+                    if (enriched.length > 0) setSelectedSupTeamId(enriched[0].team.team_id);
+                } else {
+                    const team = await api.getUserTeam(session.user_id);
+                    if (team) {
+                        setMyTeamData(team);
+                        setHasTeam(true);
+                        const [members, teamReservations] = await Promise.all([
+                            api.getTeamMembers(team.team_id),
+                            api.getTeamReservations(team.team_id),
+                        ]);
+                        setTeamMembers(members);
+                        setReservations(teamReservations);
+                    } else {
+                        const teams = await api.getAvailableTeams();
+                        setAvailableTeams(teams);
+                    }
+                }
+            } catch {
+                showNotice({ type: 'error', message: 'Failed to load data. Check your connection.' });
+            } finally {
+                setLoading(false);
+            }
+        }
+        load();
+    }, [isSupervisor]);
+
+    const handleAcceptInvite = async (senderUserId: string) => {
+        try {
+            await api.acceptInvitation(senderUserId, currentUserId);
+            setInvitations(prev => prev.filter(i => i.sender_user_id !== senderUserId));
+            if (!isSupervisor) {
+                const team = await api.getUserTeam(currentUserId);
+                if (team) {
+                    setMyTeamData(team);
+                    setHasTeam(true);
+                    const [members, teamReservations] = await Promise.all([
+                        api.getTeamMembers(team.team_id),
+                        api.getTeamReservations(team.team_id),
+                    ]);
+                    setTeamMembers(members);
+                    setReservations(teamReservations);
+                }
+            }
+            showNotice({ type: 'success', message: 'Invitation accepted.' });
+        } catch {
+            showNotice({ type: 'error', message: 'Failed to accept invitation.' });
+        }
     };
 
-    // ── Student handlers ───────────────────────────────────────
-    const handleCreateTeam = (projectTitle: string) => {
-        setMyTeamData({ ...MOCK_MY_TEAM, project_title: projectTitle, supervisor_id: '', supervisor_name: undefined });
-        setTeamMembers([{ team_id: 1, user_id: STUDENT_USER_ID, full_name: 'Ammar Ahmad Sameed', university_id: '20221001', role: 'student', team_role: 'Team Leader' }]);
-        setReservations([]);
-        setHasTeam(true);
-        setShowCreateModal(false);
-        setNotice({ type: 'success', message: `Team "${projectTitle}" created.` });
+    const handleDeclineInvite = async (senderUserId: string) => {
+        try {
+            await api.declineInvitation(senderUserId, currentUserId);
+            setInvitations(prev => prev.filter(i => i.sender_user_id !== senderUserId));
+            showNotice({ type: 'info', message: 'Invitation declined.' });
+        } catch {
+            showNotice({ type: 'error', message: 'Failed to decline invitation.' });
+        }
     };
-    const handleLeaveTeam = () => {
-        if (window.confirm('Are you sure you want to leave this team?')) {
+
+    const handleCreateTeam = async (projectTitle: string) => {
+        try {
+            const team = await api.createTeam(projectTitle, currentUserId);
+            setMyTeamData(team);
+            setHasTeam(true);
+            const members = await api.getTeamMembers(team.team_id);
+            setTeamMembers(members);
+            setReservations([]);
+            setShowCreateModal(false);
+            showNotice({ type: 'success', message: `Team "${projectTitle}" created.` });
+        } catch {
+            showNotice({ type: 'error', message: 'Failed to create team.' });
+        }
+    };
+
+    const handleJoinRequest = async (teamId: number) => {
+        try {
+            await api.requestToJoinTeam(currentUserId, teamId);
+            showNotice({ type: 'info', message: 'Join request sent.' });
+        } catch {
+            showNotice({ type: 'error', message: 'Failed to send join request.' });
+        }
+    };
+
+    const handleLeaveTeam = async () => {
+        if (!myTeamData || !window.confirm('Are you sure you want to leave this team?')) return;
+        try {
+            await api.leaveTeam(currentUserId, myTeamData.team_id);
             setHasTeam(false);
-            setNotice({ type: 'info', message: 'You left the team.' });
+            setMyTeamData(null);
+            setTeamMembers([]);
+            setReservations([]);
+            const teams = await api.getAvailableTeams();
+            setAvailableTeams(teams);
+            showNotice({ type: 'info', message: 'You left the team.' });
+        } catch {
+            showNotice({ type: 'error', message: 'Failed to leave team.' });
         }
     };
 
-    // ── Supervisor: stop supervising ───────────────────────────
-    // Simulates: UPDATE teams SET supervisor_id = NULL WHERE id = $teamId
-    const handleStopSupervising = () => {
-        const title = getActiveTeam().project_title;
-        if (window.confirm(`Stop supervising "${title}"?`)) {
+    const handleStopSupervising = async () => {
+        if (selectedSupTeamId === null) return;
+        const activeTeam = supervisedTeams.find(t => t.team.team_id === selectedSupTeamId)?.team;
+        if (!activeTeam || !window.confirm(`Stop supervising "${activeTeam.project_title}"?`)) return;
+        try {
+            await api.stopSupervising(selectedSupTeamId);
             const remaining = supervisedTeams.filter(t => t.team.team_id !== selectedSupTeamId);
-            const freedTeam: Team = { ...getActiveTeam(), supervisor_id: '', supervisor_name: undefined };
-            setUnsupervisedTeams(prev => [...prev, freedTeam]);
+            const freed: Team = { ...activeTeam, supervisor_id: '', supervisor_name: undefined };
             setSupervisedTeams(remaining);
-            if (remaining.length > 0) setSelectedSupTeamId(remaining[0].team.team_id);
-            setMemberToManage(null);
-            setNotice({ type: 'info', message: `Stopped supervising "${title}".` });
+            setUnsupervisedTeams(prev => [...prev, freed]);
+            setSelectedSupTeamId(remaining.length > 0 ? remaining[0].team.team_id : null);
+            showNotice({ type: 'info', message: `Stopped supervising "${activeTeam.project_title}".` });
+        } catch {
+            showNotice({ type: 'error', message: 'Failed to stop supervising.' });
         }
     };
 
-    // ── Supervisor: take supervision of a team ─────────────────
-    // Simulates: UPDATE teams SET supervisor_id = $supervisorId WHERE id = $teamId
-    const handleSuperviseTeam = (teamId: number) => {
-        const team = unsupervisedTeams.find(t => t.team_id === teamId);
-        if (!team) return;
-        const newEntry: SupervisedTeamData = {
-            team: { ...team, supervisor_id: SUPERVISOR_USER_ID, supervisor_name: SUPERVISOR_NAME },
-            members: [],
-            reservations: [],
-        };
-        setSupervisedTeams(prev => [...prev, newEntry]);
-        setUnsupervisedTeams(prev => prev.filter(t => t.team_id !== teamId));
-        setSelectedSupTeamId(teamId);
-        setNotice({ type: 'success', message: `Now supervising "${team.project_title}".` });
-    };
-
-    // ── Reservation CRUD ───────────────────────────────────────
-    // Simulates: INSERT INTO reservations (team_id, location, reservation_time) VALUES (...)
-    // or:        UPDATE reservations SET ... WHERE team_id = ... AND reservation_time = ...
-    const handleReservationSubmit = (location: string, date: string) => {
-        const newR: Reservation = { team_id: getActiveTeam().team_id, location, reservation_time: date };
-
-        if (isSupervisor) {
-            setSupervisedTeams(prev => prev.map(t => {
-                if (t.team.team_id !== selectedSupTeamId) return t;
-                const existingTime = reservationToEdit?.reservation_time;
-                const updated = existingTime
-                    ? t.reservations.map(r => r.reservation_time === existingTime ? newR : r)
-                    : [...t.reservations, newR];
-                return { ...t, reservations: updated };
-            }));
-        } else {
-            const existingTime = reservationToEdit?.reservation_time;
-            setReservations(prev => existingTime
-                ? prev.map(r => r.reservation_time === existingTime ? newR : r)
-                : [...prev, newR]
-            );
+    const handleSuperviseTeam = async (teamId: number) => {
+        try {
+            await api.setTeamSupervisor(teamId, currentUserId);
+            const team = unsupervisedTeams.find(t => t.team_id === teamId);
+            if (!team) return;
+            const [members, teamReservations] = await Promise.all([
+                api.getTeamMembers(teamId),
+                api.getTeamReservations(teamId),
+            ]);
+            const newEntry: SupervisedTeamData = {
+                team: { ...team, supervisor_id: currentUserId, supervisor_name: currentUserName },
+                members,
+                reservations: teamReservations,
+            };
+            setSupervisedTeams(prev => [...prev, newEntry]);
+            setUnsupervisedTeams(prev => prev.filter(t => t.team_id !== teamId));
+            setSelectedSupTeamId(teamId);
+            showNotice({ type: 'success', message: `Now supervising "${team.project_title}".` });
+        } catch {
+            showNotice({ type: 'error', message: 'Failed to take supervision.' });
         }
-        setReservationToEdit(null);
-        setNotice({ type: 'success', message: reservationToEdit ? 'Reservation updated.' : 'Reservation booked.' });
     };
 
-    // Simulates: DELETE FROM reservations WHERE team_id = ... AND reservation_time = ...
-    const handleDeleteReservation = (r: Reservation) => {
+    const handleReservationSubmit = async (location: string, date: string) => {
+        const activeTeam = getActiveTeam();
+        if (!activeTeam) return;
+        try {
+            if (reservationToEdit) {
+                await api.updatePresentation(activeTeam.team_id, reservationToEdit.reservation_time, location, date);
+            } else {
+                await api.bookPresentation(activeTeam.team_id, location, date);
+            }
+            const updated = await api.getTeamReservations(activeTeam.team_id);
+            if (isSupervisor) {
+                setSupervisedTeams(prev => prev.map(t =>
+                    t.team.team_id === selectedSupTeamId ? { ...t, reservations: updated } : t
+                ));
+            } else {
+                setReservations(updated);
+            }
+            setReservationToEdit(null);
+            showNotice({ type: 'success', message: reservationToEdit ? 'Reservation updated.' : 'Reservation booked.' });
+        } catch {
+            showNotice({ type: 'error', message: 'Failed to save reservation.' });
+        }
+    };
+
+    const handleDeleteReservation = async (r: Reservation) => {
         if (!window.confirm(`Delete reservation at ${r.location}?`)) return;
-        if (isSupervisor) {
-            setSupervisedTeams(prev => prev.map(t =>
-                t.team.team_id === selectedSupTeamId
-                    ? { ...t, reservations: t.reservations.filter(x => x.reservation_time !== r.reservation_time) }
-                    : t
-            ));
-        } else {
-            setReservations(prev => prev.filter(x => x.reservation_time !== r.reservation_time));
+        try {
+            await api.deletePresentation(r.team_id, r.reservation_time);
+            if (isSupervisor) {
+                setSupervisedTeams(prev => prev.map(t =>
+                    t.team.team_id === selectedSupTeamId
+                        ? { ...t, reservations: t.reservations.filter(x => x.reservation_time !== r.reservation_time) }
+                        : t
+                ));
+            } else {
+                setReservations(prev => prev.filter(x => x.reservation_time !== r.reservation_time));
+            }
+            showNotice({ type: 'info', message: 'Reservation deleted.' });
+        } catch {
+            showNotice({ type: 'error', message: 'Failed to delete reservation.' });
         }
-        setNotice({ type: 'info', message: 'Reservation deleted.' });
     };
 
-    // ── Shared member handlers ─────────────────────────────────
-    const getActiveTeam = (): Team =>
-        isSupervisor ? supervisedTeams.find(t => t.team.team_id === selectedSupTeamId)?.team ?? MOCK_MY_TEAM : myTeamData;
+    const handleUpdateMemberRole = async (userId: string, newRole: string) => {
+        const activeTeam = getActiveTeam();
+        if (!activeTeam) return;
+        try {
+            await api.updateMemberRole(activeTeam.team_id, userId, newRole);
+            setActiveMembers(prev => prev.map(m => m.user_id === userId ? { ...m, team_role: newRole } : m));
+            setMemberToManage(null);
+            showNotice({ type: 'success', message: 'Member role updated.' });
+        } catch {
+            showNotice({ type: 'error', message: 'Failed to update role.' });
+        }
+    };
+
+    const handlePromoteToLeader = async (userId: string) => {
+        const activeTeam = getActiveTeam();
+        if (!activeTeam) return;
+        try {
+            await api.promoteToLeader(activeTeam.team_id, userId);
+            setActiveMembers(prev => prev.map(m => {
+                if (m.user_id === userId) return { ...m, team_role: 'Team Leader' };
+                if (m.team_role === 'Team Leader') return { ...m, team_role: 'Member' };
+                return m;
+            }));
+            setMemberToManage(null);
+            showNotice({ type: 'success', message: 'Team leader changed.' });
+        } catch {
+            showNotice({ type: 'error', message: 'Failed to promote member.' });
+        }
+    };
+
+    const handleKickMember = async (userId: string) => {
+        const activeTeam = getActiveTeam();
+        if (!activeTeam || !window.confirm('Remove this member from the team?')) return;
+        try {
+            await api.kickMember(activeTeam.team_id, userId);
+            setActiveMembers(prev => prev.filter(m => m.user_id !== userId));
+            setMemberToManage(null);
+            showNotice({ type: 'success', message: 'Member removed.' });
+        } catch {
+            showNotice({ type: 'error', message: 'Failed to remove member.' });
+        }
+    };
+
+    const handleInviteMember = async (receiverUniId: string) => {
+        try {
+            await api.sendInvitation(currentUserId, receiverUniId);
+            setShowInviteModal(false);
+            showNotice({ type: 'success', message: 'Invitation sent.' });
+        } catch {
+            showNotice({ type: 'error', message: 'Student not found or invite failed.' });
+        }
+    };
+
+    const handleUpdateDoc = async (link: string) => {
+        const activeTeam = getActiveTeam();
+        if (!activeTeam) return;
+        try {
+            await api.uploadTeamDocument(activeTeam.team_id, link);
+            if (isSupervisor) {
+                setSupervisedTeams(prev => prev.map(t =>
+                    t.team.team_id === selectedSupTeamId ? { ...t, team: { ...t.team, introduction_link: link } } : t
+                ));
+            } else {
+                setMyTeamData(prev => prev ? { ...prev, introduction_link: link } : prev);
+            }
+            setShowDocModal(false);
+        } catch {
+            showNotice({ type: 'error', message: 'Failed to update document link.' });
+        }
+    };
+
+    const getActiveTeam = (): Team | null =>
+        isSupervisor
+            ? supervisedTeams.find(t => t.team.team_id === selectedSupTeamId)?.team ?? null
+            : myTeamData;
 
     const getActiveMembers = (): TeamMember[] =>
-        isSupervisor ? supervisedTeams.find(t => t.team.team_id === selectedSupTeamId)?.members ?? [] : teamMembers;
+        isSupervisor
+            ? supervisedTeams.find(t => t.team.team_id === selectedSupTeamId)?.members ?? []
+            : teamMembers;
 
     const getActiveReservations = (): Reservation[] =>
-        isSupervisor ? supervisedTeams.find(t => t.team.team_id === selectedSupTeamId)?.reservations ?? [] : reservations;
+        isSupervisor
+            ? supervisedTeams.find(t => t.team.team_id === selectedSupTeamId)?.reservations ?? []
+            : reservations;
 
     const setActiveMembers = (updater: (prev: TeamMember[]) => TeamMember[]) => {
         if (isSupervisor) {
@@ -271,43 +360,20 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
         }
     };
 
-    const handleUpdateMemberRole = (userId: string, newRole: string) => {
-        setActiveMembers(prev => prev.map(m => m.user_id === userId ? { ...m, team_role: newRole } : m));
-        setMemberToManage(null);
-        setNotice({ type: 'success', message: 'Member role updated.' });
-    };
-    const handlePromoteToLeader = (userId: string) => {
-        setActiveMembers(prev => prev.map(m => {
-            if (m.user_id === userId) return { ...m, team_role: 'Team Leader' };
-            if (m.team_role === 'Team Leader') return { ...m, team_role: 'Member' };
-            return m;
-        }));
-        setMemberToManage(null);
-        setNotice({ type: 'success', message: 'Team leader changed.' });
-    };
-    const handleKickMember = (userId: string) => {
-        if (window.confirm('Remove this member from the team?')) {
-            setActiveMembers(prev => prev.filter(m => m.user_id !== userId));
-            setMemberToManage(null);
-            setNotice({ type: 'success', message: 'Member removed.' });
-        }
-    };
-    const handleUpdateDoc = (link: string) => {
-        if (isSupervisor) {
-            setSupervisedTeams(prev => prev.map(t =>
-                t.team.team_id === selectedSupTeamId ? { ...t, team: { ...t.team, introduction_link: link } } : t
-            ));
-        } else {
-            setMyTeamData(prev => ({ ...prev, introduction_link: link }));
-        }
-        setShowDocModal(false);
-    };
-
-    // ── Render ────────────────────────────────────────────────
-    const activeTeam        = getActiveTeam();
-    const activeMembers     = getActiveMembers();
+    const activeTeam         = getActiveTeam();
+    const activeMembers      = getActiveMembers();
     const activeReservations = getActiveReservations();
-    const showReservationModal = reservationToEdit !== null; // null = closed, undefined or Reservation = open
+    const showReservationModal = reservationToEdit !== null;
+
+    if (loading) {
+        return (
+            <div className="min-vh-100 d-flex align-items-center justify-content-center">
+                <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-vh-100 pb-5 page-body">
@@ -323,14 +389,13 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
             <div className="container container-main">
 
                 {isSupervisor ? (
-                    /* ══ SUPERVISOR VIEW ═══════════════════════ */
                     <>
                         {supervisedTeams.length > 0 && (
                             <div className="section-enter">
                                 <SupervisorTeamSelector
-                                    supervisorName={SUPERVISOR_NAME}
+                                    supervisorName={currentUserName}
                                     teams={supervisedTeams}
-                                    selectedTeamId={selectedSupTeamId}
+                                    selectedTeamId={selectedSupTeamId!}
                                     onSelectTeam={(id) => { setSelectedSupTeamId(id); setMemberToManage(null); }}
                                 />
                             </div>
@@ -344,14 +409,14 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
                             />
                         </div>
 
-                        {supervisedTeams.length > 0 ? (
+                        {supervisedTeams.length > 0 && activeTeam ? (
                             <div className="section-enter">
                                 <MyTeamPanel
                                     key={selectedSupTeamId}
                                     team={activeTeam}
                                     members={activeMembers}
                                     reservations={activeReservations}
-                                    currentUserId={SUPERVISOR_USER_ID}
+                                    currentUserId={currentUserId}
                                     onLeaveTeam={handleStopSupervising}
                                     onInviteMember={() => setShowInviteModal(true)}
                                     onUpdateDoc={() => setShowDocModal(true)}
@@ -381,7 +446,6 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
                         </div>
                     </>
                 ) : (
-                    /* ══ STUDENT VIEW ══════════════════════════ */
                     <>
                         <div className="text-center mb-5 fade-up">
                             <h2 className="fw-bolder mb-1 page-title" style={{ letterSpacing: '-0.5px' }}>
@@ -398,13 +462,13 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
                             />
                         </div>
 
-                        {hasTeam ? (
+                        {hasTeam && myTeamData ? (
                             <div className="section-enter">
                                 <MyTeamPanel
                                     team={myTeamData}
                                     members={teamMembers}
                                     reservations={reservations}
-                                    currentUserId={STUDENT_USER_ID}
+                                    currentUserId={currentUserId}
                                     onLeaveTeam={handleLeaveTeam}
                                     onInviteMember={() => setShowInviteModal(true)}
                                     onUpdateDoc={() => setShowDocModal(true)}
@@ -417,8 +481,8 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
                         ) : (
                             <div className="section-enter">
                                 <AvailableTeamsGrid
-                                    teams={MOCK_AVAILABLE_TEAMS}
-                                    onJoinRequest={(id) => setNotice({ type: 'info', message: `Join request sent to team ${id}.` })}
+                                    teams={availableTeams}
+                                    onJoinRequest={handleJoinRequest}
                                     onCreateTeam={() => setShowCreateModal(true)}
                                 />
                             </div>
@@ -426,11 +490,10 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
                     </>
                 )}
 
-                {/* ── Modals ─────────────────────────────────── */}
                 {showCreateModal && (
                     <CreateTeamModal onClose={() => setShowCreateModal(false)} onSubmit={handleCreateTeam} />
                 )}
-                {showReservationModal && (
+                {showReservationModal && activeTeam && (
                     <ReservationModal
                         team={activeTeam}
                         existing={reservationToEdit ?? undefined}
@@ -441,10 +504,10 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
                 {showInviteModal && (
                     <InviteMemberModal
                         onClose={() => setShowInviteModal(false)}
-                        onSubmit={(id) => { alert(`Invited: ${id}`); setShowInviteModal(false); }}
+                        onSubmit={handleInviteMember}
                     />
                 )}
-                {showDocModal && (
+                {showDocModal && activeTeam && (
                     <UploadDocModal
                         currentLink={activeTeam.introduction_link}
                         onClose={() => setShowDocModal(false)}

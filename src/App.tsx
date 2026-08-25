@@ -5,6 +5,8 @@ import { useDarkMode } from './hooks/useDarkMode';
 import LogIn from "./pages/LogIn.tsx";
 import RegistrationA from './pages/RegistrationA';
 import ProjectDashboard from "./pages/ProjectDashboard.tsx";
+import * as api from './lib/api';
+
 
 type ActivePage = 'registration' | 'project';
 export type UserRole = 'student' | 'supervisor';
@@ -23,11 +25,13 @@ function App() {
     else setActivePage('registration');
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try { await api.logout(); } catch { /* ignore */ }
     setIsAuthenticated(false);
     setActivePage('registration');
     setUserRole('student');
   };
+
 
   if (!isAuthenticated) {
     return <LogIn onLogin={handleLogin} isDark={isDark} onToggleDark={toggleDark} />;
