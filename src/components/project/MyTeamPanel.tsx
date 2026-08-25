@@ -86,17 +86,19 @@ export const MyTeamPanel: React.FC<MyTeamPanelProps> = ({
                             </svg>
                         </div>
                         <div>
-                            <span className="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-1 fw-bold mb-1" style={{ fontSize: '0.72rem' }}>Your Active Team</span>
-                            <h3 className="fw-bolder mb-0" style={{ color: '#0f172a' }}>{team.Name}</h3>
-                            <p className="text-secondary fw-semibold mb-0 small">{team.title}</p>
+                            <span className="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-1 fw-bold mb-1" style={{ fontSize: '0.72rem' }}>
+                                            {isSupervisor ? '◆ Supervised Team' : 'Your Active Team'}
+                                        </span>
+                            <h3 className="fw-bolder mb-0" style={{ color: '#0f172a' }}>{team.project_title}</h3>
                         </div>
                     </div>
                     <div className="d-flex flex-wrap gap-2">
-                        {!isSupervisor && (
-                            <button className="btn btn-outline-danger fw-bold rounded-3 px-4 py-2 pressable-btn" onClick={onLeaveTeam}>
-                                Leave Team
-                            </button>
-                        )}
+                        <button
+                            className="btn btn-outline-danger fw-bold rounded-3 px-4 py-2 pressable-btn"
+                            onClick={onLeaveTeam}
+                        >
+                            {isSupervisor ? 'Stop Supervising' : 'Leave Team'}
+                        </button>
                         <button className="btn btn-primary fw-bold shadow-sm rounded-3 px-4 py-2 pressable-btn" onClick={onBookPresentation}>
                             Book Presentation
                         </button>
@@ -109,7 +111,9 @@ export const MyTeamPanel: React.FC<MyTeamPanelProps> = ({
                         <div>
                             <h6 className="fw-bold text-dark mb-1">Project Supervisor</h6>
                             <span className="text-secondary small">
-                                {team.supervisor_id ? `Supervisor ID: ${team.supervisor_id}` : 'No supervisor assigned yet.'}
+                                {team.supervisor_id
+                                    ? (team.supervisor_name ?? `ID: ${team.supervisor_id}`)
+                                    : 'No supervisor assigned yet.'}
                             </span>
                         </div>
                         {!team.supervisor_id && isTeamLeader && (

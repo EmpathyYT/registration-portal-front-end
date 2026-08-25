@@ -1,11 +1,15 @@
 import { useState } from 'react';
+import type { UserRole } from '../App';
 import PageMenu from '../components/layout/PageMenu';
 
 type LogInProps = {
-    onLogin: () => void;
+    onLogin: (role: UserRole) => void;
     isDark: boolean;
     onToggleDark: () => void;
 };
+
+// Mock credentials — in real app this comes from Supabase Auth
+const SUPERVISOR_IDS = ['sup001', 'dr001'];
 
 export default function LogIn({ onLogin, isDark, onToggleDark }: LogInProps) {
     const [uniId, setUniId] = useState('');
@@ -16,10 +20,10 @@ export default function LogIn({ onLogin, isDark, onToggleDark }: LogInProps) {
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
-        console.log('Logging in with:', { uniId, password });
-        setTimeout(() => {
-            onLogin();
-        }, 650);
+        const role: UserRole = SUPERVISOR_IDS.includes(uniId.trim().toLowerCase())
+            ? 'supervisor'
+            : 'student';
+        setTimeout(() => { onLogin(role); }, 650);
     };
 
     return (
@@ -31,7 +35,7 @@ export default function LogIn({ onLogin, isDark, onToggleDark }: LogInProps) {
                 <div className="card-body p-4 p-md-5">
                     <div className="text-center mb-5">
                         <h2 className="fw-bolder mb-1 page-title">Portal Login</h2>
-                        <p className="text-muted mb-0 small">Sign in once, then switch between pages from the top menu.</p>
+                        <p className="text-muted mb-0 small">Al-Balqa' Applied University student &amp; staff portal.</p>
                     </div>
 
                     <form onSubmit={handleLogin}>
@@ -49,7 +53,7 @@ export default function LogIn({ onLogin, isDark, onToggleDark }: LogInProps) {
                             />
                         </div>
 
-                        <div className="mb-5">
+                        <div className="mb-4">
                             <label className="form-label fw-bold text-secondary small text-uppercase" style={{ letterSpacing: '0.06em' }}>Password</label>
                             <div className="position-relative">
                                 <input
@@ -87,6 +91,11 @@ export default function LogIn({ onLogin, isDark, onToggleDark }: LogInProps) {
                             {isSubmitting && <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>}
                             {isSubmitting ? 'Signing In...' : 'Sign In'}
                         </button>
+
+                        {/* Demo hint */}
+                        <p className="text-center text-muted small mt-3 mb-0" style={{ fontSize: '0.78rem' }}>
+                            Demo: use <code>SUP001</code> as Uni ID to log in as a supervisor
+                        </p>
                     </form>
                 </div>
             </div>

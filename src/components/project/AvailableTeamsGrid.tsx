@@ -4,19 +4,28 @@ import type { Team } from '../../types/project';
 interface AvailableTeamsGridProps {
     teams: Team[];
     onJoinRequest: (team_id: number) => void;
-    onCreateTeam: () => void;
+    onCreateTeam?: () => void;
+    // optional customisation for supervisor mode
+    title?: string;        // default: "Explore Teams"
+    actionLabel?: string;  // default: "Request to Join"
+    showCreate?: boolean;  // default: true
 }
 
-export const AvailableTeamsGrid: React.FC<AvailableTeamsGridProps> = ({ teams, onJoinRequest, onCreateTeam }) => {
+export const AvailableTeamsGrid: React.FC<AvailableTeamsGridProps> = ({
+    teams, onJoinRequest, onCreateTeam,
+    title = 'Explore Teams',
+    actionLabel = 'Request to Join',
+    showCreate = true,
+}) => {
     const [hoveredCard, setHoveredCard] = useState<number | null>(null);
-    const [requestedTeams, setRequestedTeams] = useState<number[]>([]);
-    const [requestingTeamId, setRequestingTeamId] = useState<number | null>(null);
+    const [actedTeams, setActedTeams] = useState<number[]>([]);
+    const [actingTeamId, setActingTeamId] = useState<number | null>(null);
 
     const handleRequest = (team_id: number) => {
-        setRequestingTeamId(team_id);
+        setActingTeamId(team_id);
         setTimeout(() => {
-            setRequestedTeams((prev) => [...prev, team_id]);
-            setRequestingTeamId(null);
+            setActedTeams((prev) => [...prev, team_id]);
+            setActingTeamId(null);
             onJoinRequest(team_id);
         }, 550);
     };
@@ -33,13 +42,15 @@ export const AvailableTeamsGrid: React.FC<AvailableTeamsGridProps> = ({ teams, o
                                 <path d="M4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/>
                             </svg>
                         </div>
-                        <h4 className="fw-bolder mb-0" style={{ color: '#0f172a' }}>Explore Teams</h4>
+                        <h4 className="fw-bolder mb-0 page-title">{title}</h4>
                     </div>
-                    <span className="text-muted small fw-semibold">{teams.length} Teams Recruiting</span>
+                    <span className="text-muted small fw-semibold">{teams.length} team{teams.length !== 1 ? 's' : ''} available</span>
                 </div>
-                <button className="btn btn-primary fw-bold shadow-sm rounded-3 px-4 py-2 pressable-btn" onClick={onCreateTeam}>
-                    + Create New Project
-                </button>
+                {showCreate && onCreateTeam && (
+                    <button className="btn btn-primary fw-bold shadow-sm rounded-3 px-4 py-2 pressable-btn" onClick={onCreateTeam}>
+                        + Create New Project
+                    </button>
+                )}
             </div>
 
             {teams.length === 0 ? (
@@ -51,8 +62,8 @@ export const AvailableTeamsGrid: React.FC<AvailableTeamsGridProps> = ({ teams, o
                     {teams.map((team, index) => {
                         const fillPercentage = (team.min_users / team.max_users) * 100;
                         const isHovered = hoveredCard === team.team_id;
-                        const hasRequested = requestedTeams.includes(team.team_id);
-                        const isRequesting = requestingTeamId === team.team_id;
+                        const hasActed = actedTeams.includes(team.team_id);
+                        const isActing = actingTeamId === team.team_id;
 
                         return (
                             <div key={team.team_id} className="col section-enter" style={{ animationDelay: `${index * 70}ms` }}>
@@ -78,8 +89,7 @@ export const AvailableTeamsGrid: React.FC<AvailableTeamsGridProps> = ({ teams, o
                                             </span>
                                         </div>
 
-                                        <h5 className="card-title fw-bolder text-dark mb-1">{team.Name}</h5>
-                                        <p className="card-text text-secondary small fw-semibold mb-4">{team.title}</p>
+                                        <h5 className="card-title fw-bolder text-dark mb-4">{team.project_title}</h5>
 
                                         <div className="mt-auto">
                                             <div className="d-flex justify-content-between text-muted small fw-bold mb-2">
@@ -95,13 +105,13 @@ export const AvailableTeamsGrid: React.FC<AvailableTeamsGridProps> = ({ teams, o
                                             </div>
 
                                             <button
-                                                className={`btn w-100 fw-bold rounded-3 py-2 pressable-btn d-flex align-items-center justify-content-center gap-2 ${hasRequested ? 'btn-secondary' : isHovered ? 'btn-primary shadow-sm' : 'btn-light text-primary'}`}
+                                                className={`btn w-100 fw-bold rounded-3 py-2 pressable-btn d-flex align-items-center justify-content-center gap-2 ${hasActed ? 'btn-secondary' : isHovered ? 'btn-primary shadow-sm' : 'btn-light text-primary'}`}
                                                 style={{ transition: 'all 0.2s ease' }}
                                                 onClick={() => handleRequest(team.team_id)}
-                                                disabled={hasRequested || isRequesting}
+                                                disabled={hasActed || isActing}
                                             >
-                                                {isRequesting && <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>}
-                                                {hasRequested ? 'Requested' : isRequesting ? 'Sending...' : 'Request to Join'}
+                                                {isActing && <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>}
+                                                {hasActed ? '✓ Done' : isActing ? 'Working...' : actionLabel}
                                             </button>
                                         </div>
                                     </div>

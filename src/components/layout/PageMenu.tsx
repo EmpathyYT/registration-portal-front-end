@@ -37,8 +37,8 @@ export default function PageMenu({ switchLabel, onSwitchPage, onLogout, isDark, 
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    const handleSwitch = () => { setIsOpen(false); onSwitchPage(); };
-    const handleLogout = () => { setIsOpen(false); onLogout(); };
+    const handleSwitch = () => { setIsOpen(false); onSwitchPage?.(); };
+    const handleLogout = () => { setIsOpen(false); onLogout?.(); };
 
     return (
         <div
@@ -52,9 +52,26 @@ export default function PageMenu({ switchLabel, onSwitchPage, onLogout, isDark, 
             <div className="container py-2 d-flex justify-content-between align-items-center" style={{ maxWidth: '1100px' }}>
 
                 <div className="d-flex align-items-center gap-2 text-decoration-none" style={{ userSelect: 'none' }}>
-                    <span className="fw-bolder navbar-brand-text" style={{ fontSize: '0.95rem', letterSpacing: '-0.01em' }}>
-                        UniPortal
-                    </span>
+                    {/* BAU official logo */}
+                    <img
+                        src="/bau-logo.png"
+                        alt="Al-Balqa' Applied University"
+                        style={{
+                            width: '36px',
+                            height: '36px',
+                            objectFit: 'contain',
+                            flexShrink: 0,
+                            borderRadius: '6px',
+                        }}
+                    />
+                    <div>
+                        <span className="fw-bolder navbar-brand-text d-none d-md-block" style={{ fontSize: '0.88rem', letterSpacing: '-0.01em', lineHeight: 1.1 }}>
+                            Al-Balqa' Applied University
+                        </span>
+                        <span className="fw-bolder navbar-brand-text d-block d-md-none" style={{ fontSize: '0.95rem' }}>
+                            BAU Portal
+                        </span>
+                    </div>
                 </div>
 
                 <div className="position-relative" ref={menuRef}>

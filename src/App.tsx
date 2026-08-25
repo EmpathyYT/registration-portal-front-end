@@ -7,16 +7,26 @@ import RegistrationA from './pages/RegistrationA';
 import ProjectDashboard from "./pages/ProjectDashboard.tsx";
 
 type ActivePage = 'registration' | 'project';
+export type UserRole = 'student' | 'supervisor';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activePage, setActivePage] = useState<ActivePage>('registration');
+  const [userRole, setUserRole] = useState<UserRole>('student');
   const [isDark, toggleDark] = useDarkMode();
 
-  const handleLogin = () => setIsAuthenticated(true);
+  const handleLogin = (role: UserRole) => {
+    setIsAuthenticated(true);
+    setUserRole(role);
+    // Supervisors always land on the project dashboard
+    if (role === 'supervisor') setActivePage('project');
+    else setActivePage('registration');
+  };
+
   const handleLogout = () => {
     setIsAuthenticated(false);
     setActivePage('registration');
+    setUserRole('student');
   };
 
   if (!isAuthenticated) {
@@ -36,10 +46,12 @@ function App() {
 
   return (
     <ProjectDashboard
-      onSwitchPage={() => setActivePage('registration')}
+      // Supervisors are locked to this page — no switch button
+      onSwitchPage={userRole === 'supervisor' ? undefined : () => setActivePage('registration')}
       onLogout={handleLogout}
       isDark={isDark}
       onToggleDark={toggleDark}
+      userRole={userRole}
     />
   );
 }

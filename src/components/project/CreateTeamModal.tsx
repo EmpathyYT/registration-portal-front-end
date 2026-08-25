@@ -2,17 +2,16 @@ import React, { useState } from 'react';
 
 interface CreateTeamModalProps {
     onClose: () => void;
-    onSubmit: (teamName: string, projectTitle: string) => void;
+    onSubmit: (projectTitle: string) => void;  // teams table only has project_title, no name
 }
 
 export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({ onClose, onSubmit }) => {
-    const [teamName, setTeamName] = useState('');
     const [projectTitle, setProjectTitle] = useState('');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (teamName.trim() && projectTitle.trim()) {
-            onSubmit(teamName, projectTitle);
+        if (projectTitle.trim()) {
+            onSubmit(projectTitle);
         }
     };
 
@@ -26,17 +25,6 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({ onClose, onSub
                     </div>
                     <div className="modal-body p-4">
                         <form onSubmit={handleSubmit}>
-                            <div className="mb-3">
-                                <label className="form-label fw-semibold text-secondary">Team Name</label>
-                                <input
-                                    type="text"
-                                    className="form-control form-control-lg bg-light border-0"
-                                    placeholder="e.g. Alpha Tech"
-                                    value={teamName}
-                                    onChange={(e) => setTeamName(e.target.value)}
-                                    required
-                                />
-                            </div>
                             <div className="mb-4">
                                 <label className="form-label fw-semibold text-secondary">Project Title</label>
                                 <input
@@ -49,7 +37,7 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({ onClose, onSub
                                 />
                             </div>
                             <button type="submit" className="btn btn-primary btn-lg w-100 fw-bold shadow-sm rounded-3">
-                                Create & Become Leader
+                                Create &amp; Become Leader
                             </button>
                         </form>
                     </div>
