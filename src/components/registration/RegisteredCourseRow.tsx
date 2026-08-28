@@ -1,5 +1,6 @@
 import React from 'react';
-import type {EnrolledCourse} from '../../types/registration';
+import type { EnrolledCourse } from '../../types/registration';
+import { styles } from '../../styles/components/registration/RegisteredCourseRowStyles';
 
 interface RegisteredCourseRowProps {
     course: EnrolledCourse;
@@ -10,15 +11,12 @@ export const RegisteredCourseRow: React.FC<RegisteredCourseRowProps> = ({ course
     return (
         <tr>
             <td>
-                <button
-                    className="btn btn-outline-danger btn-sm fw-bold shadow-sm rounded-3 px-3"
-                    onClick={() => onDrop(course.semester_course_id)}
-                >
+                <button className={styles.dropBtn} onClick={() => onDrop(course.semester_course_id)}>
                     Drop
                 </button>
             </td>
-            <td className="text-secondary">{course.course_id}</td>
-            <td className="fw-semibold">{course.name}</td>
+            <td className={styles.courseId}>{course.course_id}</td>
+            <td className={styles.courseName}>{course.name}</td>
             <td>{course.credits}</td>
             <td>{course.instructor_name}</td>
             <td>{course.days_of_week}</td>

@@ -3,6 +3,7 @@ import type { UserRole } from '../App';
 import PageMenu from '../components/layout/PageMenu';
 import FloatingNotice, { type NoticeState } from '../components/layout/FloatingNotice';
 import * as api from '../lib/api';
+import { styles } from '../styles/pages/LogInStyles';
 
 type LogInProps = {
     onLogin: (role: UserRole) => void;
@@ -39,23 +40,23 @@ export default function LogIn({ onLogin, isDark, onToggleDark }: LogInProps) {
     };
 
     return (
-        <div className="min-vh-100 d-flex align-items-center justify-content-center px-3 login-bg login-page">
+        <div className={styles.wrapper}>
             <PageMenu isDark={isDark} onToggleDark={onToggleDark} />
             <FloatingNotice notice={notice} />
 
-            <div className="card login-card border-0 w-100 bounce-in shadow-lg login-card-wrapper">
-                <div className="card-body p-4 p-md-5">
-                    <div className="text-center mb-5">
-                        <h2 className="fw-bolder mb-1 page-title">Portal Login</h2>
-                        <p className="text-muted mb-0 small">Al-Balqa' Applied University student &amp; staff portal.</p>
+            <div className={styles.card}>
+                <div className={styles.cardBody}>
+                    <div className={styles.heading}>
+                        <h2 className={styles.title}>Portal Login</h2>
+                        <p className={styles.subtitle}>Al-Balqa' Applied University student &amp; staff portal.</p>
                     </div>
 
                     <form onSubmit={handleLogin}>
-                        <div className="mb-4">
-                            <label className="form-label fw-bold text-secondary small text-uppercase label-uppercase">UNI ID</label>
+                        <div className={styles.fieldWrap}>
+                            <label className={styles.label}>UNI ID</label>
                             <input
                                 type="text"
-                                className="form-control form-control-lg bg-light border-0 input-animated autofill-fix input-rounded"
+                                className={styles.input}
                                 placeholder="Enter your University ID"
                                 value={uniId}
                                 onChange={(e) => setUniId(e.target.value)}
@@ -64,12 +65,12 @@ export default function LogIn({ onLogin, isDark, onToggleDark }: LogInProps) {
                             />
                         </div>
 
-                        <div className="mb-4">
-                            <label className="form-label fw-bold text-secondary small text-uppercase label-uppercase">Password</label>
-                            <div className="position-relative">
+                        <div className={styles.fieldWrap}>
+                            <label className={styles.label}>Password</label>
+                            <div className={styles.passwordWrap}>
                                 <input
                                     type={showPassword ? 'text' : 'password'}
-                                    className="form-control form-control-lg bg-light border-0 pe-5 input-animated autofill-fix input-rounded"
+                                    className={styles.passwordInput}
                                     placeholder="Enter your password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
@@ -78,7 +79,7 @@ export default function LogIn({ onLogin, isDark, onToggleDark }: LogInProps) {
                                 />
                                 <button
                                     type="button"
-                                    className="btn border-0 position-absolute end-0 top-50 translate-middle-y me-2 d-flex align-items-center justify-content-center eye-btn"
+                                    className={styles.eyeBtn}
                                     onClick={() => setShowPassword(!showPassword)}
                                     disabled={isSubmitting}
                                 >
@@ -91,11 +92,7 @@ export default function LogIn({ onLogin, isDark, onToggleDark }: LogInProps) {
                             </div>
                         </div>
 
-                        <button
-                            type="submit"
-                            className="btn btn-success btn-lg w-100 fw-bold pressable-btn d-flex align-items-center justify-content-center gap-2 btn-login"
-                            disabled={isSubmitting}
-                        >
+                        <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>
                             {isSubmitting && <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>}
                             {isSubmitting ? 'Signing In...' : 'Sign In'}
                         </button>

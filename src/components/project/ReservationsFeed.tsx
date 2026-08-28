@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Reservation } from '../../types/project';
+import { styles } from '../../styles/components/project/ReservationsFeedStyles';
 
 interface ReservationsFeedProps {
     reservations: Reservation[];
@@ -25,68 +26,62 @@ export default function ReservationsFeed({ reservations, canManage, onBook, onEd
     const hasMultiple = reservations.length > 1;
 
     return (
-        <div className="mb-4">
-            <div className="d-flex align-items-center gap-2 mb-3">
-                <div className="icon-box-sm">
+        <div className={styles.wrapper}>
+            <div className={styles.header}>
+                <div className={styles.icon}>
                     <svg width="13" height="13" fill="white" viewBox="0 0 16 16">
                         <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z"/>
                     </svg>
                 </div>
-                <h6 className="fw-bold mb-0 menu-text section-label">Presentation Schedule</h6>
+                <h6 className={styles.title}>Presentation Schedule</h6>
                 {reservations.length > 0 && (
-                    <span className="fw-bolder rounded-pill d-flex align-items-center gap-1 badge-pending">
-                        📅 {reservations.length} booked
-                    </span>
+                    <span className={styles.countBadge}>📅 {reservations.length} booked</span>
                 )}
                 {canManage && (
-                    <button className="btn btn-primary btn-sm fw-bold rounded-3 px-3 ms-auto pressable-btn" onClick={onBook}>
-                        + Book Slot
-                    </button>
+                    <button className={styles.bookBtn} onClick={onBook}>+ Book Slot</button>
                 )}
             </div>
 
             {reservations.length === 0 ? (
-                <div className="card border-0 bg-white rounded-4 shadow-sm p-3 d-flex flex-column flex-md-row align-items-md-center justify-content-between interactive-card">
-                    <div className="d-flex align-items-center">
-                        <div className="icon-circle bg-light me-3">
+                <div className={styles.emptyCard}>
+                    <div className={styles.emptyLeft}>
+                        <div className={styles.emptyIcon}>
                             <svg width="20" height="20" fill="#adb5bd" viewBox="0 0 16 16">
                                 <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z"/>
                             </svg>
                         </div>
                         <div>
-                            <h6 className="fw-bolder text-dark mb-0">No presentations booked</h6>
-                            <div className="text-muted small mt-1">
+                            <h6 className={styles.emptyTitle}>No presentations booked</h6>
+                            <div className={styles.emptySubtitle}>
                                 {canManage ? 'Click "+ Book Slot" to reserve a time.' : 'Your team has not booked a slot yet.'}
                             </div>
                         </div>
                     </div>
                 </div>
             ) : (
-                <div className="card border-0 bg-white rounded-4 shadow-sm p-3 d-flex flex-column flex-md-row align-items-md-center justify-content-between interactive-card fade-up card-border-success">
-                    <div className="d-flex align-items-center mb-3 mb-md-0">
-                        <div className="icon-circle bg-success bg-opacity-10 text-success me-3">
+                <div className={styles.activeCard}>
+                    <div className={styles.activeLeft}>
+                        <div className={styles.activeIcon}>
                             <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
                                 <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z"/>
                             </svg>
                         </div>
                         <div>
-                            <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                                <h6 className="fw-bolder text-dark mb-0">{active.location}</h6>
-                                <span className="fw-bolder badge-upcoming rounded-pill">Upcoming</span>
+                            <div className={styles.activeTitleRow}>
+                                <h6 className={styles.activeTitle}>{active.location}</h6>
+                                <span className={styles.upcomingBadge}>Upcoming</span>
                             </div>
-                            <div className="d-flex align-items-center gap-2 flex-wrap">
-                                <span className="text-muted small">🕐 {formatDateTime(active.reservation_time)}</span>
+                            <div className={styles.activeMeta}>
+                                <span className={styles.metaText}>🕐 {formatDateTime(active.reservation_time)}</span>
                                 {hasMultiple && (
-                                    <span className="fw-bold badge-position rounded-pill d-inline-flex align-items-center">
-                                        {safeIndex + 1} of {reservations.length}
-                                    </span>
+                                    <span className={styles.positionBadge}>{safeIndex + 1} of {reservations.length}</span>
                                 )}
                             </div>
                         </div>
                     </div>
-                    <div className="d-flex flex-wrap gap-2 justify-content-md-end">
+                    <div className={styles.actions}>
                         <button
-                            className={`btn btn-light rounded-3 fw-bold px-3 py-2 pressable-btn ${hasMultiple ? 'soft-pulse' : ''}`}
+                            className={styles.nextBtn(hasMultiple)}
                             onClick={() => hasMultiple && setActiveIndex(prev => (prev + 1) % reservations.length)}
                             disabled={!hasMultiple}
                             aria-label="Next reservation"
@@ -97,8 +92,8 @@ export default function ReservationsFeed({ reservations, canManage, onBook, onEd
                         </button>
                         {canManage && (
                             <>
-                                <button className="btn btn-light fw-bold rounded-3 px-4 py-2 pressable-btn" onClick={() => onEdit(active)}>Edit</button>
-                                <button className="btn btn-light text-danger fw-bold rounded-3 px-4 py-2 pressable-btn" onClick={() => onDelete(active)}>Delete</button>
+                                <button className={styles.editBtn} onClick={() => onEdit(active)}>Edit</button>
+                                <button className={styles.deleteBtn} onClick={() => onDelete(active)}>Delete</button>
                             </>
                         )}
                     </div>

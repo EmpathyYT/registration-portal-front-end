@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
 import type { EnrolledCourse } from '../../types/registration';
+import {
+    styles,
+    cardStyle,
+    cardHeaderStyle,
+    iconBoxStyle,
+    creditsBadgeTransition,
+    commitBtnStyle,
+    dropBtnStyle,
+} from '../../styles/components/registration/RegisteredCoursesTableStyles';
 
 export type CommitState = 'clean' | 'dirty' | 'committing' | 'success';
 
@@ -23,12 +32,12 @@ const RegisteredCoursesTable: React.FC<RegisteredCoursesTableProps> = ({ courses
         }, 260);
     };
 
-    let btnClass = "btn fw-bolder rounded-3 py-2 d-flex align-items-center justify-content-center gap-2 ";
+    let btnClass = 'btn fw-bolder rounded-3 py-2 d-flex align-items-center justify-content-center gap-2 ';
     let btnContent = null;
     let isDisabled = false;
 
     if (isOverCredits) {
-        btnClass += "btn-danger border border-danger border-opacity-25";
+        btnClass += 'btn-danger border border-danger border-opacity-25';
         isDisabled = true;
         btnContent = (
             <>
@@ -39,7 +48,7 @@ const RegisteredCoursesTable: React.FC<RegisteredCoursesTableProps> = ({ courses
             </>
         );
     } else if (commitState === 'clean') {
-        btnClass += "btn-light text-success border border-success border-opacity-25";
+        btnClass += 'btn-light text-success border border-success border-opacity-25';
         isDisabled = true;
         btnContent = (
             <>
@@ -48,7 +57,7 @@ const RegisteredCoursesTable: React.FC<RegisteredCoursesTableProps> = ({ courses
             </>
         );
     } else if (commitState === 'dirty') {
-        btnClass += "btn-success btn-glowing";
+        btnClass += 'btn-success btn-glowing';
         btnContent = (
             <>
                 <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16" className="icon-spin-slow">
@@ -58,7 +67,7 @@ const RegisteredCoursesTable: React.FC<RegisteredCoursesTableProps> = ({ courses
             </>
         );
     } else if (commitState === 'committing') {
-        btnClass += "btn-success";
+        btnClass += 'btn-success';
         isDisabled = true;
         btnContent = (
             <>
@@ -67,7 +76,7 @@ const RegisteredCoursesTable: React.FC<RegisteredCoursesTableProps> = ({ courses
             </>
         );
     } else if (commitState === 'success') {
-        btnClass += "btn-success text-white";
+        btnClass += 'btn-success text-white';
         isDisabled = true;
         btnContent = (
             <>
@@ -79,74 +88,59 @@ const RegisteredCoursesTable: React.FC<RegisteredCoursesTableProps> = ({ courses
 
     return (
         <>
-            <style>
-                {`
+            <style>{`
                 @keyframes pulse-glow {
                     0% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.6); }
                     70% { box-shadow: 0 0 0 10px rgba(25, 135, 84, 0); }
                     100% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0); }
                 }
-                .btn-glowing {
-                    animation: pulse-glow 2s infinite;
-                }
-                @keyframes spin-slow {
-                    100% { transform: rotate(360deg); }
-                }
-                .icon-spin-slow {
-                    animation: spin-slow 3s linear infinite;
-                }
-                `}
-            </style>
+                .btn-glowing { animation: pulse-glow 2s infinite; }
+                @keyframes spin-slow { 100% { transform: rotate(360deg); } }
+                .icon-spin-slow { animation: spin-slow 3s linear infinite; }
+            `}</style>
 
-            <div className="card border-0 mb-5 fade-up" style={{ borderRadius: '1.5rem', boxShadow: '0 8px 32px rgba(15,23,42,0.09)', background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.6)' }}>
-                <div className="card-header bg-transparent border-0 pt-4 pb-3 px-4 px-md-5 d-flex flex-column flex-md-row justify-content-between align-items-md-center" style={{ borderRadius: '1.5rem 1.5rem 0 0' }}>
-                    <div className="mb-3 mb-md-0 d-flex align-items-center gap-3">
-                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'linear-gradient(135deg, #22c55e, #16a34a)', boxShadow: '0 4px 12px rgba(22,163,74,0.28)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div className={styles.card} style={cardStyle}>
+                <div className={styles.header} style={cardHeaderStyle}>
+                    <div className={styles.headerLeft}>
+                        <div style={iconBoxStyle}>
                             <svg width="18" height="18" fill="white" viewBox="0 0 16 16"><path d="M0 1.5A1.5 1.5 0 0 1 1.5 0h13A1.5 1.5 0 0 1 16 1.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 14.5v-13zm1.5-.5a.5.5 0 0 0-.5.5v13a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-13a.5.5 0 0 0-.5-.5h-13zM5 6a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-1 4a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm5-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-1 4a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm5-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-1 4a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg>
                         </div>
-                        <h3 className="fw-bolder mb-0" style={{ color: '#0f172a' }}>Registered Courses</h3>
+                        <h3 className={styles.title} style={{ color: '#0f172a' }}>Registered Courses</h3>
                     </div>
-
-                    <div className="d-flex align-items-center gap-3">
-                        {}
-                        <div className={`badge ${isOverCredits ? 'bg-danger text-danger' : 'bg-success text-success'} bg-opacity-10 rounded-pill px-4 py-2 fw-bold fs-6 shadow-sm`} style={{ transition: 'all 0.3s ease' }}>
+                    <div className={styles.headerRight}>
+                        <div className={styles.creditsBadge(isOverCredits)} style={creditsBadgeTransition}>
                             {isOverCredits ? `Limit Exceeded (${totalCredits})` : `Total Credits: ${totalCredits}`}
                         </div>
-
                         <button
                             className={`${btnClass} pressable-btn`}
                             onClick={onCommit}
                             disabled={isDisabled}
-                            style={{ transition: 'background-color 0.3s ease, transform 0.2s ease', width: '190px' }}
+                            style={commitBtnStyle}
                         >
                             {btnContent}
                         </button>
                     </div>
                 </div>
 
-                <div className="card-body p-4 p-md-5 pt-0">
-                    <div className="list-group list-group-flush gap-3">
+                <div className={styles.body}>
+                    <div className={styles.list}>
                         {courses.length === 0 ? (
-                            <div className="text-center py-5 text-muted fw-bold bg-light rounded-4">
-                                No courses currently registered.
-                            </div>
+                            <div className={styles.emptyState}>No courses currently registered.</div>
                         ) : (
                             courses.map((course, index) => (
                                 <div
                                     key={course.semester_course_id}
-                                    className="list-group-item border-0 p-3 p-md-4 bg-light rounded-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between interactive-card section-enter"
+                                    className={styles.row}
                                     style={{ animationDelay: `${index * 45}ms` }}
                                 >
-                                    <div className="d-flex align-items-center mb-3 mb-md-0">
+                                    <div className={styles.rowLeft}>
                                         <div>
-                                            <h6 className="fw-bolder text-dark mb-2 text-md-start text-center">{course.name}</h6>
-
-                                            <div className="d-flex flex-wrap align-items-center justify-content-center justify-content-md-start gap-2 mb-2">
-                                                <span className="badge bg-white text-secondary border px-2 py-1">ID: {course.course_id}</span>
-                                                <span className="badge bg-white text-secondary border px-2 py-1">{course.credits} Credits</span>
+                                            <h6 className={styles.courseNameRow}>{course.name}</h6>
+                                            <div className={styles.badgeRow}>
+                                                <span className={styles.idBadge}>ID: {course.course_id}</span>
+                                                <span className={styles.creditsBadgeSm}>{course.credits} Credits</span>
                                             </div>
-
-                                            <div className="text-muted small fw-semibold d-flex align-items-center justify-content-center justify-content-md-start gap-2">
+                                            <div className={styles.instructorRow}>
                                                 <svg width="14" height="14" fill="#198754" viewBox="0 0 16 16">
                                                     <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z"/>
                                                 </svg>
@@ -154,28 +148,23 @@ const RegisteredCoursesTable: React.FC<RegisteredCoursesTableProps> = ({ courses
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="d-flex flex-column flex-md-row align-items-md-center gap-4">
-
-                                        <div className="text-center text-md-end">
-                                            {}
-                                            <div className="fw-bolder text-dark small mb-2">
-                                                {course.days_of_week}
-                                            </div>
-                                            <div className="text-muted small d-flex align-items-center justify-content-center justify-content-md-end gap-1">
+                                    <div className={styles.rowRight}>
+                                        <div className={styles.scheduleBlock}>
+                                            <div className={styles.daysText}>{course.days_of_week}</div>
+                                            <div className={styles.timeRow}>
                                                 <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
                                                     <path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z"/>
                                                     <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"/>
                                                 </svg>
                                                 {course.lecture_time_in_day}
-                                                <span className="mx-1 opacity-50 fw-bold">|</span>
+                                                <span className={styles.separator}>|</span>
                                                 {course.location}
                                             </div>
                                         </div>
-
                                         <button
-                                            className="btn btn-outline-danger fw-bold rounded-3 px-4 py-2 shadow-sm pressable-btn"
+                                            className={styles.dropBtn}
                                             onClick={() => handleDropCourse(course.semester_course_id)}
-                                            style={{ minWidth: '100px' }}
+                                            style={dropBtnStyle}
                                             disabled={droppingCourseId === course.semester_course_id}
                                         >
                                             {droppingCourseId === course.semester_course_id ? 'Dropping...' : 'Drop'}

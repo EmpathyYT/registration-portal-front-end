@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { Course, CourseSection } from '../../types/registration';
+import { styles, modalOverlayStyle, modalContentStyle, addBtnStyle } from '../../styles/components/registration/CourseSectionsTableStyles';
 
 interface CourseSectionsTableProps {
     course: Course;
@@ -20,71 +21,56 @@ const CourseSectionsTable: React.FC<CourseSectionsTableProps> = ({ course, secti
     };
 
     return (
-        <div className="modal d-block" style={{ backgroundColor: 'rgba(0, 0, 0, 0.4)', backdropFilter: 'blur(4px)', zIndex: 1050 }} tabIndex={-1}>
-            <div className="modal-dialog modal-dialog-centered modal-lg animate-slide-fade">
-                <div className="modal-content border-0 shadow-lg fade-up" style={{ borderRadius: '1.5rem', background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.6)' }}>
-
-                    <div className="modal-header border-0 pt-4 px-4 px-md-5 pb-2 d-flex justify-content-between align-items-start">
+        <div className={styles.overlay} style={modalOverlayStyle} tabIndex={-1}>
+            <div className={styles.dialog}>
+                <div className={styles.content} style={modalContentStyle}>
+                    <div className={styles.header}>
                         <div>
-                            <span className="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-2 fw-bold mb-2">
-                                Available Sections
-                            </span>
-                            <h3 className="fw-bolder text-dark mb-0">{course.name}</h3>
-                            <p className="text-muted small fw-semibold mt-1 mb-0">Course ID: {course.course_id}</p>
+                            <span className={styles.availableBadge}>Available Sections</span>
+                            <h3 className={styles.courseTitle}>{course.name}</h3>
+                            <p className={styles.courseId}>Course ID: {course.course_id}</p>
                         </div>
-                        <button
-                            type="button"
-                            className="btn-close bg-light rounded-circle p-2"
-                            onClick={onClose}
-                            aria-label="Close"
-                        ></button>
+                        <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close"></button>
                     </div>
 
-                    <div className="modal-body p-4 p-md-5 pt-3">
-                        <div className="list-group list-group-flush gap-3">
+                    <div className={styles.body}>
+                        <div className={styles.list}>
                             {sections.length === 0 ? (
-                                <div className="text-center py-5 text-muted fw-bold bg-light rounded-4">
-                                    No sections currently available for this course.
-                                </div>
+                                <div className={styles.emptyState}>No sections currently available for this course.</div>
                             ) : (
                                 sections.map((section, index) => (
                                     <div
                                         key={section.semester_course_id}
-                                        className="list-group-item border-0 p-3 p-md-4 bg-light rounded-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between interactive-card section-enter"
+                                        className={styles.row}
                                         style={{ animationDelay: `${index * 55}ms` }}
                                     >
-                                        <div className="d-flex align-items-center mb-3 mb-md-0">
+                                        <div className={styles.rowLeft}>
                                             <div>
-                                                <h6 className="fw-bolder text-dark mb-1 d-flex align-items-center gap-2">
+                                                <h6 className={styles.instructorName}>
                                                     <svg width="16" height="16" fill="#198754" viewBox="0 0 16 16"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z"/></svg>
                                                     {section.instructor_name}
                                                 </h6>
-                                                <div className="text-muted small fw-semibold d-flex gap-3 mt-2">
-                                                    <span className="badge bg-white text-secondary border px-2 py-1">Section: {section.semester_course_id}</span>
-                                                    <span className="badge bg-white text-secondary border px-2 py-1">{course.credits} Credits</span>
+                                                <div className={styles.metaRow}>
+                                                    <span className={styles.metaBadge}>Section: {section.semester_course_id}</span>
+                                                    <span className={styles.metaBadge}>{course.credits} Credits</span>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className="d-flex flex-column flex-md-row align-items-md-center gap-3 gap-md-4">
-
-                                            <div className="text-md-end">
-                                                {}
-                                                <div className="fw-bolder text-dark small mb-2">
-                                                    {section.days_of_week}
-                                                </div>
-                                                <div className="text-muted small d-flex align-items-center justify-content-md-end gap-1">
+                                        <div className={styles.rowRight}>
+                                            <div className={styles.scheduleBlock}>
+                                                <div className={styles.daysText}>{section.days_of_week}</div>
+                                                <div className={styles.timeRow}>
                                                     <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z"/><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"/></svg>
                                                     {section.lecture_time_in_day}
-                                                    <span className="mx-1 opacity-50 fw-bold">|</span>
+                                                    <span className={styles.separator}>|</span>
                                                     {section.location}
                                                 </div>
                                             </div>
-
                                             <button
-                                                className="btn btn-success fw-bold rounded-3 px-4 py-2 shadow-sm d-flex align-items-center justify-content-center gap-2 pressable-btn"
+                                                className={styles.addBtn}
                                                 onClick={() => handleAddSection(section.semester_course_id)}
-                                                style={{ transition: 'all 0.2s ease', minWidth: '100px' }}
+                                                style={addBtnStyle}
                                                 disabled={addingSectionId === section.semester_course_id}
                                             >
                                                 {addingSectionId === section.semester_course_id ? (
