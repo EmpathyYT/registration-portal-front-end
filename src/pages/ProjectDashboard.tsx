@@ -378,11 +378,12 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
     return (
         <div className="min-vh-100 pb-5 page-body">
             <PageMenu
-                switchLabel="Registration Page"
+                switchLabel="Registration Portal"
                 onSwitchPage={onSwitchPage}
                 onLogout={onLogout}
                 isDark={isDark}
                 onToggleDark={onToggleDark}
+                userRole={userRole}
             />
             <FloatingNotice notice={notice} />
 

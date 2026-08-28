@@ -165,7 +165,7 @@ export default function RegistrationA({ onSwitchPage, onLogout, isDark, onToggle
 
     return (
         <div className="min-vh-100 pb-5 page-body">
-            <PageMenu switchLabel="Project Page" onSwitchPage={onSwitchPage} onLogout={onLogout} isDark={isDark} onToggleDark={onToggleDark} />
+            <PageMenu switchLabel="Project Page" onSwitchPage={onSwitchPage} onLogout={onLogout} isDark={isDark} onToggleDark={onToggleDark} userRole="student" />
             <FloatingNotice notice={notice} />
             <div className="container container-main">
                 <div className="text-center mb-5 fade-up">

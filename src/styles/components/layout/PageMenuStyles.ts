@@ -11,6 +11,7 @@ export const styles = {
     dropdown: 'position-absolute end-0 mt-2 rounded-4 overflow-hidden glass-dropdown animate-slide-fade menu-dropdown',
     dropdownInner: 'menu-dropdown-inner',
     darkToggleBtn: 'btn w-100 text-start px-3 py-2 menu-action fw-semibold d-flex align-items-center justify-content-between dark-toggle-btn menu-item-btn',
+    chatBtn: 'btn btn-primary d-flex align-items-center gap-2 pressable-btn fw-bold rounded-pill px-3 me-2',
     darkToggleLabel: 'd-flex align-items-center gap-2',
     darkTogglePill: (active: boolean) => `dark-toggle-pill${active ? ' active' : ''}`,
     darkToggleThumb: 'dark-toggle-thumb',
