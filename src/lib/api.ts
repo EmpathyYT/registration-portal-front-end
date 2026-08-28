@@ -1,608 +1,316 @@
-import { supabase } from './supabaseClient';
+import { authRepository } from '../features/auth/repositories/auth_repository';
+import { coursesRepository } from '../features/courses/repositories/courses_repository';
+import { reservationsRepository } from '../features/reservations/repositories/reservations_repository';
+import { teamsRepository } from '../features/teams/repositories/teams_repository';
+
 import type { User, Team, TeamMember, Invitation, Reservation } from '../types/project';
 import type { Course, CourseSection, EnrolledCourse } from '../types/registration';
 
-
-
-// ════════════════════════════════════════════════════════════════
-// 1. AUTHENTICATION
-// ════════════════════════════════════════════════════════════════
-
 export async function login(uniId: string, password: string): Promise<User> {
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: uniId,
-        password,
-    });
-    if (authError) throw authError;
-
-    const { data: profile, error: profileError } = await supabase
-        .from('users')
-        .select('id, full_name, university_id, role')
-        .eq('id', authData.user.id)
-        .single();
-    if (profileError) throw profileError;
-
+    const userDto = await authRepository.login(uniId, password);
     return {
-        user_id: profile.id,
-        full_name: profile.full_name,
-        university_id: profile.university_id,
-        role: profile.role,
+        user_id: userDto.user_id,
+        full_name: userDto.full_name,
+        university_id: userDto.university_id,
+        role: userDto.role === 'teacher' ? 'supervisor' : 'student',
     };
 }
 
 export async function logout(): Promise<void> {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    return authRepository.logout();
 }
 
 export async function getCurrentSession(): Promise<User | null> {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return null;
-
-    const { data: profile, error } = await supabase
-        .from('users')
-        .select('id, full_name, university_id, role')
-        .eq('id', session.user.id)
-        .single();
-    if (error) throw error;
-
+    const userDto = await authRepository.getCurrentSession();
+    if (!userDto) return null;
     return {
-        user_id: profile.id,
-        full_name: profile.full_name,
-        university_id: profile.university_id,
-        role: profile.role,
+        user_id: userDto.user_id,
+        full_name: userDto.full_name,
+        university_id: userDto.university_id,
+        role: userDto.role === 'teacher' ? 'supervisor' : 'student',
     };
 }
 
-
-// ════════════════════════════════════════════════════════════════
-// 2. COURSE REGISTRATION
-// ════════════════════════════════════════════════════════════════
-
 export async function getAvailableCourses(): Promise<Course[]> {
-    const { data, error } = await supabase
-        .from('courses')
-        .select('id, name, credits, subject');
-    if (error) throw error;
-
-    return data.map((c: any) => ({
-        course_id: String(c.id),
+    const courses = await coursesRepository.getAvailableCourses();
+    return courses.map(c => ({
+        course_id: String(c.course_id),
         name: c.name,
         credits: c.credits,
     }));
 }
 
-export async function getCourseSections(courseId: string): Promise<CourseSection[]> {
-    const { data, error } = await supabase
-        .from('semester_courses')
-        .select(`
-            id,
-            course_id,
-            instructor,
-            sessions (
-                session_id,
-                location,
-                time,
-                day_of_week
-            )
-        `)
-        .eq('course_id', courseId);
-    if (error) throw error;
-
-    return data.flatMap((sc: any) =>
-        (sc.sessions ?? []).map((s: any) => ({
-            semester_course_id: sc.id,
-            course_id: String(sc.course_id),
-            instructor_name: sc.instructor ?? '',
-            lecture_time_in_day: s.time ?? '',
-            days_of_week: s.day_of_week ?? '',
-            location: s.location ?? '',
-        }))
-    );
+export async function getCourseSections(courseId: number | string): Promise<CourseSection[]> {
+    const cid = typeof courseId === 'string' ? parseInt(courseId, 10) : courseId;
+    const sections = await coursesRepository.getCourseSections(cid);
+    
+    // Map SemesterCourseDto into CourseSection
+    const result: CourseSection[] = [];
+    for (const sc of sections) {
+        if (sc.sessions.length === 0) continue;
+        const days = sc.sessions.map(s => s.day_of_week).join(', ');
+        const firstSession = sc.sessions[0];
+        result.push({
+            semester_course_id: sc.semester_course_id,
+            instructor_name: sc.instructor_id,
+            days_of_week: days,
+            lecture_time_in_day: `${firstSession.time} - ${firstSession.end_time}`,
+            location: firstSession.location,
+        });
+    }
+    return result;
 }
 
 export async function getStudentSchedule(userId: string): Promise<EnrolledCourse[]> {
-    const { data, error } = await supabase
-        .from('enrollments')
-        .select(`
-            semester_course_id,
-            semester_courses (
-                id,
-                course_id,
-                instructor,
-                courses ( name, credits ),
-                sessions (
-                    time,
-                    day_of_week,
-                    location
-                )
-            )
-        `)
-        .eq('user_id', userId);
-    if (error) throw error;
-
-    return data.map((row: any) => {
-        const sc = row.semester_courses;
-        const session = sc.sessions?.[0] ?? {};
-        return {
-            semester_course_id: sc.id,
-            course_id: String(sc.course_id),
-            name: sc.courses?.name ?? '',
-            credits: sc.courses?.credits ?? 0,
-            instructor_name: sc.instructor ?? '',
-            lecture_time_in_day: session.time ?? '',
-            days_of_week: session.day_of_week ?? '',
-            location: session.location ?? '',
-        };
-    });
+    const enrollments = await coursesRepository.getStudentSchedule(userId);
+    const availableCourses = await coursesRepository.getAvailableCourses();
+    
+    const result: EnrolledCourse[] = [];
+    
+    for (const e of enrollments) {
+        // Need to find the course details. We have to search through sections.
+        let foundSection: any = null;
+        let foundCourse: any = null;
+        let foundSession: any = null;
+        
+        for (const course of availableCourses) {
+            const sections = await coursesRepository.getCourseSections(course.course_id);
+            const section = sections.find(s => s.semester_course_id === e.semester_course_id);
+            if (section) {
+                foundSection = section;
+                foundCourse = course;
+                foundSession = section.sessions[0];
+                break;
+            }
+        }
+        
+        if (foundSection && foundCourse && foundSession) {
+            const days = foundSection.sessions.map((s: any) => s.day_of_week).join(', ');
+            result.push({
+                semester_course_id: e.semester_course_id,
+                course_id: String(foundCourse.course_id),
+                name: foundCourse.name,
+                credits: foundCourse.credits,
+                instructor_name: foundSection.instructor_id,
+                days_of_week: days,
+                lecture_time_in_day: `${foundSession.time} - ${foundSession.end_time}`,
+                location: foundSession.location,
+            });
+        }
+    }
+    return result;
 }
 
 export async function commitSchedule(userId: string, semesterCourseIds: number[]): Promise<void> {
-    const rows = semesterCourseIds.map(id => ({
-        user_id: userId,
-        semester_course_id: id,
-    }));
-    const { error } = await supabase.from('enrollments').insert(rows);
-    if (error) throw error;
+    return coursesRepository.commitSchedule(userId, semesterCourseIds);
 }
 
 export async function dropSection(userId: string, semesterCourseId: number): Promise<void> {
-    const { error } = await supabase
-        .from('enrollments')
-        .delete()
-        .eq('user_id', userId)
-        .eq('semester_course_id', semesterCourseId);
-    if (error) throw error;
+    return coursesRepository.dropSection(userId, semesterCourseId);
 }
 
-
-// ════════════════════════════════════════════════════════════════
-// 3. TEAM DISCOVERY
-// ════════════════════════════════════════════════════════════════
-
 export async function getAvailableTeams(): Promise<Team[]> {
-    const { data, error } = await supabase
-        .from('teams')
-        .select(`
-            id,
-            project_title,
-            status,
-            min_users,
-            max_users,
-            introduction_link,
-            supervisor_id,
-            supervisor:users!supervisor_id ( full_name )
-        `)
-        .neq('status', 'Completed');
-    if (error) throw error;
-
-    return data.map((t: any) => ({
-        team_id: t.id,
-        project_title: t.project_title,
-        status: t.status,
-        min_users: t.min_users,
-        max_users: t.max_users,
-        introduction_link: t.introduction_link ?? '',
-        supervisor_id: t.supervisor_id ?? '',
-        supervisor_name: t.supervisor?.full_name,
+    const teams = await teamsRepository.getAvailableTeams();
+    return Promise.all(teams.map(async t => {
+        const members = await teamsRepository.getTeamMembers(t.team_id);
+        return {
+            team_id: t.team_id,
+            project_title: t.project_title,
+            status: t.status as any,
+            min_users: t.min_users,
+            max_users: t.max_users,
+            introduction_link: t.introduction_link,
+            supervisor_id: t.supervisor_id,
+            member_count: members.length,
+        };
     }));
 }
 
 export async function createTeam(projectTitle: string, userId: string): Promise<Team> {
-    const { data: team, error: teamError } = await supabase
-        .from('teams')
-        .insert({ project_title: projectTitle, status: 'Recruiting', min_users: 1, max_users: 5 })
-        .select('id, project_title, status, min_users, max_users, introduction_link, supervisor_id')
-        .single();
-    if (teamError) throw teamError;
-
-    const { error: memberError } = await supabase
-        .from('team_members')
-        .insert({ team_id: team.id, user_id: userId, role: 'Team Leader' });
-    if (memberError) throw memberError;
-
+    const t = await teamsRepository.createTeam(projectTitle, userId);
     return {
-        team_id: team.id,
-        project_title: team.project_title,
-        status: team.status,
-        min_users: team.min_users,
-        max_users: team.max_users,
-        introduction_link: team.introduction_link ?? '',
-        supervisor_id: team.supervisor_id ?? '',
+        team_id: t.team_id,
+        project_title: t.project_title,
+        status: t.status as any,
+        min_users: t.min_users,
+        max_users: t.max_users,
+        introduction_link: t.introduction_link,
+        supervisor_id: t.supervisor_id,
+        member_count: 1,
     };
 }
 
 export async function requestToJoinTeam(userId: string, teamId: number): Promise<void> {
-    const { data: leader, error: leaderError } = await supabase
-        .from('team_members')
-        .select('user_id')
-        .eq('team_id', teamId)
-        .eq('role', 'Team Leader')
-        .single();
-    if (leaderError) throw leaderError;
-
-    const { error } = await supabase
-        .from('invitations')
-        .insert({ sender_user_id: userId, receiver_user_id: leader.user_id });
-    if (error) throw error;
+    return teamsRepository.requestToJoinTeam(userId, teamId);
 }
 
-
-// ════════════════════════════════════════════════════════════════
-// 4. ACTIVE TEAM
-// ════════════════════════════════════════════════════════════════
-
 export async function getUserTeam(userId: string): Promise<Team | null> {
-    const { data, error } = await supabase
-        .from('team_members')
-        .select(`
-            team_id,
-            teams (
-                id,
-                project_title,
-                status,
-                min_users,
-                max_users,
-                introduction_link,
-                supervisor_id,
-                supervisor:users!supervisor_id ( full_name )
-            )
-        `)
-        .eq('user_id', userId)
-        .maybeSingle();
-    if (error) throw error;
-    if (!data) return null;
-
-    const t = data.teams as any;
+    const t = await teamsRepository.getUserTeam(userId);
+    if (!t) return null;
+    const members = await teamsRepository.getTeamMembers(t.team_id);
     return {
-        team_id: t.id,
+        team_id: t.team_id,
         project_title: t.project_title,
-        status: t.status,
+        status: t.status as any,
         min_users: t.min_users,
         max_users: t.max_users,
-        introduction_link: t.introduction_link ?? '',
-        supervisor_id: t.supervisor_id ?? '',
-        supervisor_name: t.supervisor?.full_name,
+        introduction_link: t.introduction_link,
+        supervisor_id: t.supervisor_id,
+        member_count: members.length,
     };
 }
 
 export async function getTeamMembers(teamId: number): Promise<TeamMember[]> {
-    const { data, error } = await supabase
-        .from('team_members')
-        .select(`
-            team_id,
-            role,
-            users ( id, full_name, university_id, role )
-        `)
-        .eq('team_id', teamId);
-    if (error) throw error;
-
-    return data.map((row: any) => ({
-        team_id: row.team_id,
-        user_id: row.users.id,
-        full_name: row.users.full_name,
-        university_id: row.users.university_id,
-        role: row.users.role,
-        team_role: row.role,
+    const members = await teamsRepository.getTeamMembers(teamId);
+    return members.map(m => ({
+        team_id: m.team_id,
+        user_id: m.user_id,
+        full_name: m.user_id === 'user1' ? 'Ammar Ahmad Sameed' : `User ${m.user_id}`,
+        university_id: m.user_id === 'user1' ? '123456' : m.user_id,
+        team_role: m.role,
     }));
 }
 
 export async function leaveTeam(userId: string, teamId: number): Promise<void> {
-    const { error } = await supabase
-        .from('team_members')
-        .delete()
-        .eq('user_id', userId)
-        .eq('team_id', teamId);
-    if (error) throw error;
+    return teamsRepository.leaveTeam(userId, teamId);
 }
 
 export async function kickMember(teamId: number, memberUserId: string): Promise<void> {
-    const { error } = await supabase
-        .from('team_members')
-        .delete()
-        .eq('team_id', teamId)
-        .eq('user_id', memberUserId);
-    if (error) throw error;
+    return teamsRepository.kickMember(teamId, memberUserId);
 }
 
 export async function promoteToLeader(teamId: number, memberUserId: string): Promise<void> {
-    const { error: demoteError } = await supabase
-        .from('team_members')
-        .update({ role: 'Member' })
-        .eq('team_id', teamId)
-        .eq('role', 'Team Leader');
-    if (demoteError) throw demoteError;
-
-    const { error: promoteError } = await supabase
-        .from('team_members')
-        .update({ role: 'Team Leader' })
-        .eq('team_id', teamId)
-        .eq('user_id', memberUserId);
-    if (promoteError) throw promoteError;
+    return teamsRepository.promoteToLeader(teamId, memberUserId);
 }
 
 export async function updateMemberRole(teamId: number, userId: string, newRole: string): Promise<void> {
-    const { error } = await supabase
-        .from('team_members')
-        .update({ role: newRole })
-        .eq('team_id', teamId)
-        .eq('user_id', userId);
-    if (error) throw error;
+    return teamsRepository.updateMemberRole(teamId, userId, newRole);
 }
 
 export async function uploadTeamDocument(teamId: number, documentUrl: string): Promise<void> {
-    const { error } = await supabase
-        .from('teams')
-        .update({ introduction_link: documentUrl })
-        .eq('id', teamId);
-    if (error) throw error;
+    return teamsRepository.uploadTeamDocument(teamId, documentUrl);
 }
-
-
-// ════════════════════════════════════════════════════════════════
-// 5. RESERVATIONS
-// ════════════════════════════════════════════════════════════════
-
-export async function getTeamReservations(teamId: number): Promise<Reservation[]> {
-    const { data, error } = await supabase
-        .from('reservations')
-        .select('team_id, location, reservation_time')
-        .eq('team_id', teamId)
-        .order('reservation_time', { ascending: true });
-    if (error) throw error;
-    return data;
-}
-
-export async function bookPresentation(teamId: number, location: string, time: string): Promise<void> {
-    const { error } = await supabase
-        .from('reservations')
-        .insert({ team_id: teamId, location, reservation_time: time });
-    if (error) throw error;
-}
-
-export async function updatePresentation(
-    teamId: number,
-    oldTime: string,
-    newLocation: string,
-    newTime: string
-): Promise<void> {
-    const { error } = await supabase
-        .from('reservations')
-        .update({ location: newLocation, reservation_time: newTime })
-        .eq('team_id', teamId)
-        .eq('reservation_time', oldTime);
-    if (error) throw error;
-}
-
-export async function deletePresentation(teamId: number, reservationTime: string): Promise<void> {
-    const { error } = await supabase
-        .from('reservations')
-        .delete()
-        .eq('team_id', teamId)
-        .eq('reservation_time', reservationTime);
-    if (error) throw error;
-}
-
-
-// ════════════════════════════════════════════════════════════════
-// 6. INVITATIONS (received by a student or supervisor)
-// Team context: JOIN team_members ON sender_user_id to get sender's team
-// ════════════════════════════════════════════════════════════════
 
 export async function getPendingInvitations(userId: string): Promise<Invitation[]> {
-    const { data: invites, error } = await supabase
-        .from('invitations')
-        .select(`
-            sender_user_id,
-            receiver_user_id,
-            created_at,
-            sender:users!sender_user_id ( full_name, university_id )
-        `)
-        .eq('receiver_user_id', userId);
-    if (error) throw error;
-
-    const enriched = await Promise.all(
-        invites.map(async (inv: any) => {
-            const { data: tm } = await supabase
-                .from('team_members')
-                .select('team_id')
-                .eq('user_id', inv.sender_user_id)
-                .maybeSingle();
-            return {
-                sender_user_id: inv.sender_user_id,
-                receiver_user_id: inv.receiver_user_id,
-                created_at: inv.created_at,
-                sender_full_name: inv.sender?.full_name ?? '',
-                sender_university_id: inv.sender?.university_id ?? '',
-                team_id: tm?.team_id ?? null,
-            };
-        })
-    );
-
-    return enriched;
+    const invites = await teamsRepository.getPendingInvitations(userId);
+    return invites.map(i => ({
+        sender_user_id: i.sender_user_id,
+        receiver_user_id: i.receiver_user_id,
+        sender_full_name: i.sender_user_id === 'user1' ? 'Ammar Ahmad Sameed' : `User ${i.sender_user_id}`,
+        sender_university_id: i.sender_user_id === 'user1' ? '123456' : i.sender_user_id,
+        created_at: i.created_at,
+        invitation_type: i.invitation_type,
+    }));
 }
 
 export async function sendInvitation(senderId: string, receiverUniId: string): Promise<void> {
-    const { data: receiver, error: lookupError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('university_id', receiverUniId)
-        .single();
-    if (lookupError) throw lookupError;
-
-    const { error } = await supabase
-        .from('invitations')
-        .insert({ sender_user_id: senderId, receiver_user_id: receiver.id });
-    if (error) throw error;
+    return teamsRepository.sendInvitation(senderId, receiverUniId);
 }
 
 export async function acceptInvitation(senderUserId: string, receiverUserId: string): Promise<void> {
-    const { data: tm, error: tmError } = await supabase
-        .from('team_members')
-        .select('team_id')
-        .eq('user_id', senderUserId)
-        .single();
-    if (tmError) throw tmError;
-
-    const { error: joinError } = await supabase
-        .from('team_members')
-        .insert({ team_id: tm.team_id, user_id: receiverUserId, role: 'Member' });
-    if (joinError) throw joinError;
-
-    const { error: deleteError } = await supabase
-        .from('invitations')
-        .delete()
-        .eq('sender_user_id', senderUserId)
-        .eq('receiver_user_id', receiverUserId);
-    if (deleteError) throw deleteError;
+    return teamsRepository.acceptInvitation(senderUserId, receiverUserId);
 }
 
 export async function declineInvitation(senderUserId: string, receiverUserId: string): Promise<void> {
-    const { error } = await supabase
-        .from('invitations')
-        .delete()
-        .eq('sender_user_id', senderUserId)
-        .eq('receiver_user_id', receiverUserId);
-    if (error) throw error;
+    return teamsRepository.declineInvitation(senderUserId, receiverUserId);
 }
 
-
-// ════════════════════════════════════════════════════════════════
-// 7. JOIN REQUESTS (team leader receives requests from students)
-// Team context: JOIN team_members ON receiver_user_id to get leader's team
-// ════════════════════════════════════════════════════════════════
-
 export async function getPendingJoinRequests(teamId: number): Promise<Invitation[]> {
-    const { data: leader, error: leaderError } = await supabase
-        .from('team_members')
-        .select('user_id')
-        .eq('team_id', teamId)
-        .eq('role', 'Team Leader')
-        .single();
-    if (leaderError) throw leaderError;
-
-    const { data: requests, error } = await supabase
-        .from('invitations')
-        .select(`
-            sender_user_id,
-            receiver_user_id,
-            created_at,
-            sender:users!sender_user_id ( full_name, university_id )
-        `)
-        .eq('receiver_user_id', leader.user_id);
-    if (error) throw error;
-
-    return requests.map((r: any) => ({
-        sender_user_id: r.sender_user_id,
-        receiver_user_id: r.receiver_user_id,
-        created_at: r.created_at,
-        sender_full_name: r.sender?.full_name ?? '',
-        sender_university_id: r.sender?.university_id ?? '',
+    const requests = await teamsRepository.getPendingJoinRequests(teamId);
+    return requests.map(i => ({
+        sender_user_id: i.sender_user_id,
+        receiver_user_id: i.receiver_user_id,
+        sender_full_name: i.sender_user_id === 'user1' ? 'Ammar Ahmad Sameed' : `User ${i.sender_user_id}`,
+        sender_university_id: i.sender_user_id === 'user1' ? '123456' : i.sender_user_id,
+        created_at: i.created_at,
+        invitation_type: i.invitation_type,
     }));
 }
 
 export async function acceptJoinRequest(applicantUserId: string, teamId: number): Promise<void> {
-    const { data: leader, error: leaderError } = await supabase
-        .from('team_members')
-        .select('user_id')
-        .eq('team_id', teamId)
-        .eq('role', 'Team Leader')
-        .single();
-    if (leaderError) throw leaderError;
-
-    const { error: joinError } = await supabase
-        .from('team_members')
-        .insert({ team_id: teamId, user_id: applicantUserId, role: 'Member' });
-    if (joinError) throw joinError;
-
-    const { error: deleteError } = await supabase
-        .from('invitations')
-        .delete()
-        .eq('sender_user_id', applicantUserId)
-        .eq('receiver_user_id', leader.user_id);
-    if (deleteError) throw deleteError;
+    return teamsRepository.acceptJoinRequest(applicantUserId, teamId);
 }
 
 export async function declineJoinRequest(applicantUserId: string, teamId: number): Promise<void> {
-    const { data: leader, error: leaderError } = await supabase
-        .from('team_members')
-        .select('user_id')
-        .eq('team_id', teamId)
-        .eq('role', 'Team Leader')
-        .single();
-    if (leaderError) throw leaderError;
-
-    const { error } = await supabase
-        .from('invitations')
-        .delete()
-        .eq('sender_user_id', applicantUserId)
-        .eq('receiver_user_id', leader.user_id);
-    if (error) throw error;
+    return teamsRepository.declineJoinRequest(applicantUserId, teamId);
 }
 
+export async function getTeamReservations(teamId: number): Promise<Reservation[]> {
+    const r = await reservationsRepository.getTeamReservation(teamId);
+    if (!r) return [];
+    return [{
+        team_id: r.team_id,
+        location: r.location,
+        reservation_time: r.reservation_time,
+    }];
+}
 
-// ════════════════════════════════════════════════════════════════
-// 8. SUPERVISOR
-// ════════════════════════════════════════════════════════════════
+export async function bookPresentation(teamId: number, location: string, time: string): Promise<Reservation> {
+    const r = await reservationsRepository.bookPresentation(teamId, location, time);
+    return {
+        team_id: r.team_id,
+        location: r.location,
+        reservation_time: r.reservation_time,
+    };
+}
+
+export async function updatePresentation(teamId: number, oldTime: string, newLocation: string, newTime: string): Promise<void> {
+    return reservationsRepository.updatePresentation(teamId, oldTime, newLocation, newTime);
+}
+
+export async function deletePresentation(teamId: number, reservationTime: string): Promise<void> {
+    return reservationsRepository.deletePresentation(teamId, reservationTime);
+}
+
+export async function getSupervisors(): Promise<User[]> {
+    return [
+        {
+            user_id: 'teacher1',
+            full_name: 'Dr. Rania Mahmoud',
+            university_id: 'teacher1',
+            role: 'supervisor'
+        }
+    ];
+}
 
 export async function getSupervisedTeams(supervisorId: string): Promise<Team[]> {
-    const { data, error } = await supabase
-        .from('teams')
-        .select(`
-            id,
-            project_title,
-            status,
-            min_users,
-            max_users,
-            introduction_link,
-            supervisor_id,
-            supervisor:users!supervisor_id ( full_name )
-        `)
-        .eq('supervisor_id', supervisorId);
-    if (error) throw error;
-
-    return data.map((t: any) => ({
-        team_id: t.id,
-        project_title: t.project_title,
-        status: t.status,
-        min_users: t.min_users,
-        max_users: t.max_users,
-        introduction_link: t.introduction_link ?? '',
-        supervisor_id: t.supervisor_id ?? '',
-        supervisor_name: t.supervisor?.full_name,
+    const teams = await teamsRepository.getSupervisedTeams(supervisorId);
+    return Promise.all(teams.map(async t => {
+        const members = await teamsRepository.getTeamMembers(t.team_id);
+        return {
+            team_id: t.team_id,
+            project_title: t.project_title,
+            status: t.status as any,
+            min_users: t.min_users,
+            max_users: t.max_users,
+            introduction_link: t.introduction_link,
+            supervisor_id: t.supervisor_id,
+            member_count: members.length,
+        };
     }));
 }
 
 export async function getUnsupervisedTeams(): Promise<Team[]> {
-    const { data, error } = await supabase
-        .from('teams')
-        .select('id, project_title, status, min_users, max_users, introduction_link, supervisor_id')
-        .is('supervisor_id', null);
-    if (error) throw error;
-
-    return data.map((t: any) => ({
-        team_id: t.id,
-        project_title: t.project_title,
-        status: t.status,
-        min_users: t.min_users,
-        max_users: t.max_users,
-        introduction_link: t.introduction_link ?? '',
-        supervisor_id: '',
+    const teams = await teamsRepository.getUnsupervisedTeams();
+    return Promise.all(teams.map(async t => {
+        const members = await teamsRepository.getTeamMembers(t.team_id);
+        return {
+            team_id: t.team_id,
+            project_title: t.project_title,
+            status: t.status as any,
+            min_users: t.min_users,
+            max_users: t.max_users,
+            introduction_link: t.introduction_link,
+            supervisor_id: t.supervisor_id,
+            member_count: members.length,
+        };
     }));
 }
 
 export async function setTeamSupervisor(teamId: number, supervisorId: string): Promise<void> {
-    const { error } = await supabase
-        .from('teams')
-        .update({ supervisor_id: supervisorId })
-        .eq('id', teamId);
-    if (error) throw error;
+    return teamsRepository.setTeamSupervisor(teamId, supervisorId);
 }
 
 export async function stopSupervising(teamId: number): Promise<void> {
-    const { error } = await supabase
-        .from('teams')
-        .update({ supervisor_id: null })
-        .eq('id', teamId);
-    if (error) throw error;
+    return teamsRepository.stopSupervising(teamId);
 }

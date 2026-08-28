@@ -55,29 +55,31 @@ export default function PageMenu({ switchLabel, onSwitchPage, onLogout, isDark, 
                     </div>
                 </div>
 
-                <div className={styles.menuWrap} ref={menuRef} style={{ display: 'flex', alignItems: 'center' }}>
-                    {userRole && (
-                        <button type="button" className={styles.chatBtn} onClick={() => setIsChatOpen(!isChatOpen)}>
-                            <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
-                            </svg>
-                            <span className="d-none d-md-inline">Ask Assistant</span>
-                        </button>
-                    )}
+                <div className={styles.menuWrap} ref={menuRef}>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                        {userRole && (
+                            <button type="button" className={styles.chatBtn} onClick={() => setIsChatOpen(!isChatOpen)}>
+                                <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                                </svg>
+                                <span className="d-none d-md-inline">AI Chatbot</span>
+                            </button>
+                        )}
 
-                    <button
-                        type="button"
-                        className={styles.menuTrigger}
-                        onClick={() => setIsOpen(!isOpen)}
-                        aria-label="Open menu"
-                        aria-expanded={isOpen}
-                    >
-                        <svg className={styles.menuIcon(isOpen)} width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" viewBox="0 0 24 24">
-                            <line x1="4" y1="6"  x2="20" y2="6"  />
-                            <line x1="4" y1="12" x2="20" y2="12" />
-                            <line x1="4" y1="18" x2="20" y2="18" />
-                        </svg>
-                    </button>
+                        <button
+                            type="button"
+                            className={styles.menuTrigger}
+                            onClick={() => setIsOpen(!isOpen)}
+                            aria-label="Open menu"
+                            aria-expanded={isOpen}
+                        >
+                            <svg className={styles.menuIcon(isOpen)} width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" viewBox="0 0 24 24">
+                                <line x1="4" y1="6"  x2="20" y2="6"  />
+                                <line x1="4" y1="12" x2="20" y2="12" />
+                                <line x1="4" y1="18" x2="20" y2="18" />
+                            </svg>
+                        </button>
+                    </div>
 
                     {isOpen && (
                         <div className={styles.dropdown}>

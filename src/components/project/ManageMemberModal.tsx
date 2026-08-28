@@ -13,7 +13,7 @@ interface ManageMemberModalProps {
 export const ManageMemberModal: React.FC<ManageMemberModalProps> = ({
     member, onClose, onUpdateRole, onPromoteToLeader, onKick,
 }) => {
-    const [teamRole, setTeamRole] = useState(member.team_role);
+    const [teamRole, setTeamRole] = useState(member.team_role || '');
 
     const handleSaveRole = () => onUpdateRole(member.user_id, teamRole);
 
@@ -32,7 +32,7 @@ export const ManageMemberModal: React.FC<ManageMemberModalProps> = ({
                                 <input
                                     type="text"
                                     className={styles.roleInput}
-                                    value={teamRole}
+                                    value={teamRole || ''}
                                     onChange={(e) => setTeamRole(e.target.value)}
                                 />
                                 <button className={styles.saveBtn} onClick={handleSaveRole}>Save</button>

@@ -510,7 +510,7 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
                 )}
                 {showDocModal && activeTeam && (
                     <UploadDocModal
-                        currentLink={activeTeam.introduction_link}
+                        currentLink={activeTeam.introduction_link || undefined}
                         onClose={() => setShowDocModal(false)}
                         onSubmit={handleUpdateDoc}
                     />

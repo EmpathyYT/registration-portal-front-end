@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { styles, inlineStyles } from './ChatbotStyles';
 
 interface Message {
@@ -39,7 +40,7 @@ export default function ChatbotWidget({ isOpen, onClose, userRole }: ChatbotWidg
         setIsLoading(true);
 
         try {
-            const url = new URL('https://ai-service-production-43ee.up.railway.app/api/chat');
+            const url = new URL(window.location.origin + '/api/chat');
             url.searchParams.append('prompt', userMsg);
             url.searchParams.append('role', userRole.toUpperCase());
 
@@ -55,7 +56,7 @@ export default function ChatbotWidget({ isOpen, onClose, userRole }: ChatbotWidg
         }
     };
 
-    return (
+    return createPortal(
         <div className={styles.overlay} style={inlineStyles.overlay}>
             <div className={styles.header}>
                 <h6 className={styles.headerTitle}>
@@ -100,6 +101,7 @@ export default function ChatbotWidget({ isOpen, onClose, userRole }: ChatbotWidg
                     </button>
                 </form>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
