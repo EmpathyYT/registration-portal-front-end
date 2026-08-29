@@ -1,0 +1,15 @@
+export const styles = {
+    wrapper: 'min-vh-100 d-flex align-items-center justify-content-center px-3 login-bg login-page',
+    card: 'card login-card border-0 w-100 bounce-in shadow-lg login-card-wrapper',
+    cardBody: 'card-body p-4 p-md-5',
+    heading: 'text-center mb-5',
+    title: 'fw-bolder mb-1 page-title',
+    subtitle: 'text-muted mb-0 small',
+    fieldWrap: 'mb-4',
+    label: 'form-label fw-bold text-secondary small text-uppercase label-uppercase',
+    input: 'form-control form-control-lg bg-light border-0 input-animated autofill-fix input-rounded',
+    passwordInput: 'form-control form-control-lg bg-light border-0 pe-5 input-animated autofill-fix input-rounded',
+    passwordWrap: 'position-relative',
+    eyeBtn: 'btn border-0 position-absolute end-0 top-50 translate-middle-y me-2 d-flex align-items-center justify-content-center eye-btn',
+    submitBtn: 'btn btn-success btn-lg w-100 fw-bold pressable-btn d-flex align-items-center justify-content-center gap-2 btn-login',
+};
