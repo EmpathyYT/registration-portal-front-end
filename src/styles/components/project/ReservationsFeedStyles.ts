@@ -19,9 +19,7 @@ export const styles = {
     upcomingBadge: 'fw-bolder badge-upcoming rounded-pill',
     activeMeta: 'd-flex align-items-center gap-2 flex-wrap',
     metaText: 'text-muted small',
-    positionBadge: 'fw-bold badge-position rounded-pill d-inline-flex align-items-center',
     actions: 'd-flex flex-wrap gap-2 justify-content-md-end',
-    nextBtn: (pulse: boolean) => `btn btn-light rounded-3 fw-bold px-3 py-2 pressable-btn${pulse ? ' soft-pulse' : ''}`,
     editBtn: 'btn btn-light fw-bold rounded-3 px-4 py-2 pressable-btn',
     deleteBtn: 'btn btn-light text-danger fw-bold rounded-3 px-4 py-2 pressable-btn',
 };

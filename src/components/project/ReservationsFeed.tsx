@@ -1,4 +1,4 @@
-import { useState } from 'react';
+
 import type { Reservation } from '../../types/project';
 import { styles } from '../../styles/components/project/ReservationsFeedStyles';
 
@@ -19,11 +19,7 @@ function formatDateTime(iso: string) {
 }
 
 export default function ReservationsFeed({ reservations, canManage, onBook, onEdit, onDelete }: ReservationsFeedProps) {
-    const [activeIndex, setActiveIndex] = useState(0);
-
-    const safeIndex = reservations.length === 0 ? 0 : Math.min(activeIndex, reservations.length - 1);
-    const active = reservations[safeIndex];
-    const hasMultiple = reservations.length > 1;
+    const active = reservations.length > 0 ? reservations[0] : null;
 
     return (
         <div className={styles.wrapper}>
@@ -34,15 +30,15 @@ export default function ReservationsFeed({ reservations, canManage, onBook, onEd
                     </svg>
                 </div>
                 <h6 className={styles.title}>Presentation Schedule</h6>
-                {reservations.length > 0 && (
-                    <span className={styles.countBadge}>📅 {reservations.length} booked</span>
+                {active && (
+                    <span className={styles.countBadge}>📅 1 booked</span>
                 )}
-                {canManage && (
+                {canManage && !active && (
                     <button className={styles.bookBtn} onClick={onBook}>+ Book Slot</button>
                 )}
             </div>
 
-            {reservations.length === 0 ? (
+            {!active ? (
                 <div className={styles.emptyCard}>
                     <div className={styles.emptyLeft}>
                         <div className={styles.emptyIcon}>
@@ -73,23 +69,10 @@ export default function ReservationsFeed({ reservations, canManage, onBook, onEd
                             </div>
                             <div className={styles.activeMeta}>
                                 <span className={styles.metaText}>🕐 {formatDateTime(active.reservation_time)}</span>
-                                {hasMultiple && (
-                                    <span className={styles.positionBadge}>{safeIndex + 1} of {reservations.length}</span>
-                                )}
                             </div>
                         </div>
                     </div>
                     <div className={styles.actions}>
-                        <button
-                            className={styles.nextBtn(hasMultiple)}
-                            onClick={() => hasMultiple && setActiveIndex(prev => (prev + 1) % reservations.length)}
-                            disabled={!hasMultiple}
-                            aria-label="Next reservation"
-                        >
-                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                <path fillRule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/>
-                            </svg>
-                        </button>
                         {canManage && (
                             <>
                                 <button className={styles.editBtn} onClick={() => onEdit(active)}>Edit</button>
