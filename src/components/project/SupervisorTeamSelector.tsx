@@ -55,7 +55,7 @@ export default function SupervisorTeamSelector({ supervisorName, teams, selected
                             </svg>
                             {selected.members.length} / {selected.team.max_users} Members
                         </span>
-                        <span className={styles.statusBadge(selected.team.status)}>
+                        <span className={statusClass(selected.team.status || '')}>
                             {selected.team.status}
                         </span>
                         <span className={styles.countBadge}>
