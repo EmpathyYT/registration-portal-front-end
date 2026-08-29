@@ -1,43 +1,24 @@
-import { useState } from 'react';
-import RegisteredCoursesTable, {type CommitState } from '../components/registration/RegisteredCoursesTable';
+import { useEffect, useState } from 'react';
+import RegisteredCoursesTable, { type CommitState } from '../components/registration/RegisteredCoursesTable';
 import CourseSectionsTable from '../components/registration/CourseSectionsTable';
 import AvailableCoursesGrid from '../components/registration/AvailableCoursesGrid';
-import type {Course, CourseSection, EnrolledCourse} from '../types/registration';
+import type { Course, CourseSection, EnrolledCourse } from '../types/registration';
+import PageMenu from '../components/layout/PageMenu';
+import FloatingNotice, { type NoticeState } from '../components/layout/FloatingNotice';
+import * as api from '../lib/api';
 
-const INITIAL_AVAILABLE_COURSES: Course[] = [
-    { course_id: '30801342', name: 'Systems Analysis and Design', credits: 3 },
-    { course_id: '30801427', name: 'Computer Architecture', credits: 3 },
-    { course_id: '30801211', name: 'Data Structures', credits: 3 },
-    { course_id: '30801301', name: 'Database Systems', credits: 3 },
-];
-
-const MOCK_SECTIONS: Record<string, CourseSection[]> = {
-    '30801342': [
-        { semester_course_id: 101, course_id: '30801342', instructor_name: 'Dr. Emad Al-Shalabi', days_of_week: 'Sun, Mon, Tue, Wed', lecture_time_in_day: '08:30 - 10:00', location: 'E202 / ONLINE 1' },
-        { semester_course_id: 102, course_id: '30801342', instructor_name: 'Dr. Ahmed Al-Salem', days_of_week: 'Mon, Tue', lecture_time_in_day: '10:00 - 11:30', location: 'IT-105' },
-    ],
-    '30801427': [
-        { semester_course_id: 201, course_id: '30801427', instructor_name: 'Khaldoun Aref', days_of_week: 'Sun, Mon, Tue, Wed', lecture_time_in_day: '11:30 - 13:00', location: 'E302 / ONLINE 1' },
-    ],
-    '30801211': [
-        { semester_course_id: 301, course_id: '30801211', instructor_name: 'Dr. Rania Mahmoud', days_of_week: 'Sun, Tue', lecture_time_in_day: '01:00 - 02:30', location: 'Lab 4' },
-    ],
-    '30801301': [
-        { semester_course_id: 401, course_id: '30801301', instructor_name: 'Dr. Khaled Al-Omari', days_of_week: 'Sun, Mon, Tue, Wed', lecture_time_in_day: '09:30 - 10:30', location: 'Lab 2' },
-        { semester_course_id: 402, course_id: '30801301', instructor_name: 'Dr. Manar Issa', days_of_week: 'Mon, Tue', lecture_time_in_day: '12:00 - 01:30', location: 'IT-201' },
-    ],
+type RegistrationAProps = {
+    onSwitchPage: () => void;
+    onLogout: () => void;
+    isDark: boolean;
+    onToggleDark: () => void;
 };
 
-// --- TIME CONFLICT HELPER ALGORITHM ---
 const hasTimeConflict = (days1: string, time1: string, days2: string, time2: string) => {
-    // Check if they share any days
     const d1 = days1.split(',').map(d => d.trim());
     const d2 = days2.split(',').map(d => d.trim());
-    const sharesDay = d1.some(day => d2.includes(day));
+    if (!d1.some(day => d2.includes(day))) return false;
 
-    if (!sharesDay) return false;
-
-    // Helper to convert "HH:MM" to minutes since midnight for easy range checking
     const parseTime = (timeStr: string) => {
         const [start, end] = timeStr.split('-').map(t => t.trim());
         const [startH, startM] = start.split(':').map(Number);
@@ -47,63 +28,84 @@ const hasTimeConflict = (days1: string, time1: string, days2: string, time2: str
 
     const t1 = parseTime(time1);
     const t2 = parseTime(time2);
-
-    // Two time ranges overlap if (Start A < End B) AND (Start B < End A)
     return t1.startMins < t2.endMins && t2.startMins < t1.endMins;
 };
 
-export default function RegistrationA() {
-    const [registeredCourses, setRegisteredCourses] = useState<EnrolledCourse[]>([
-        {
-            semester_course_id: 999,
-            course_id: '30801100',
-            name: 'Introduction to Programming',
-            credits: 3,
-            lecture_time_in_day: '08:30 - 10:00',
-            days_of_week: 'Sun, Mon, Tue, Wed',
-            instructor_name: 'Dr. Mohammed Ali',
-            location: 'C101',
-        },
-    ]);
+export default function RegistrationA({ onSwitchPage, onLogout, isDark, onToggleDark }: RegistrationAProps) {
+    const [notice, setNotice] = useState<NoticeState>(null);
+    const [currentUserId, setCurrentUserId] = useState('');
+    const [loading, setLoading] = useState(true);
 
-    const [selectedCourseId, setSelectedCourseId] = useState<string>('');
+    const [availableCourses, setAvailableCourses] = useState<Course[]>([]);
+    const [registeredCourses, setRegisteredCourses] = useState<EnrolledCourse[]>([]);
+    const [sections, setSections] = useState<CourseSection[]>([]);
+    const [selectedCourseId, setSelectedCourseId] = useState('');
     const [commitState, setCommitState] = useState<CommitState>('clean');
 
-    const handleSelectCourse = (course_id: string) => {
-        setSelectedCourseId(course_id);
+    useEffect(() => {
+        if (!notice) return;
+        const id = window.setTimeout(() => setNotice(null), 2600);
+        return () => window.clearTimeout(id);
+    }, [notice]);
+
+    useEffect(() => {
+        async function load() {
+            try {
+                const session = await api.getCurrentSession();
+                if (!session) return;
+                setCurrentUserId(session.user_id);
+
+                const [courses, schedule] = await Promise.all([
+                    api.getAvailableCourses(),
+                    api.getStudentSchedule(session.user_id),
+                ]);
+                setAvailableCourses(courses);
+                setRegisteredCourses(schedule);
+            } catch {
+                setNotice({ type: 'error', message: 'Failed to load data.' });
+            } finally {
+                setLoading(false);
+            }
+        }
+        load();
+    }, []);
+
+    const handleSelectCourse = async (courseId: string) => {
+        setSelectedCourseId(courseId);
+        setNotice({ type: 'info', message: 'Loading sections...' });
+        try {
+            const data = await api.getCourseSections(courseId);
+            setSections(data);
+        } catch {
+            setNotice({ type: 'error', message: 'Failed to load sections.' });
+        }
     };
 
     const handleCloseSections = () => {
         setSelectedCourseId('');
+        setSections([]);
     };
 
-    const handleAddSection = (semester_course_id: number) => {
-        const currentSections = MOCK_SECTIONS[selectedCourseId] || [];
-        const sectionToAdd = currentSections.find(s => s.semester_course_id === semester_course_id);
-        const courseInfo = INITIAL_AVAILABLE_COURSES.find(c => c.course_id === selectedCourseId);
-
+    const handleAddSection = (semesterCourseId: number) => {
+        const sectionToAdd = sections.find(s => s.semester_course_id === semesterCourseId);
+        const courseInfo = availableCourses.find(c => c.course_id === selectedCourseId);
         if (!sectionToAdd || !courseInfo) return;
 
-        // 1. Check Duplicate Course
-        const isAlreadyRegistered = registeredCourses.some(c => c.course_id === selectedCourseId);
-        if (isAlreadyRegistered) {
-            alert('This course is already registered!');
+        if (registeredCourses.some(c => c.course_id === selectedCourseId)) {
+            setNotice({ type: 'error', message: 'This course is already registered.' });
             setSelectedCourseId('');
             return;
         }
 
-        // 2. Check Time Conflicts
-        const conflictCourse = registeredCourses.find(c =>
+        const conflict = registeredCourses.find(c =>
             hasTimeConflict(sectionToAdd.days_of_week, sectionToAdd.lecture_time_in_day, c.days_of_week, c.lecture_time_in_day)
         );
-
-        if (conflictCourse) {
-            alert(`This section overlaps with your currently registered course:\n"${conflictCourse.name}" (${conflictCourse.lecture_time_in_day})`);
+        if (conflict) {
+            setNotice({ type: 'error', message: `Time conflict with "${conflict.name}" (${conflict.lecture_time_in_day}).` });
             setSelectedCourseId('');
             return;
         }
 
-        // 3. Add to Schedule
         const newCourse: EnrolledCourse = {
             semester_course_id: sectionToAdd.semester_course_id,
             course_id: courseInfo.course_id,
@@ -115,56 +117,83 @@ export default function RegistrationA() {
             location: sectionToAdd.location,
         };
 
-        setRegisteredCourses([...registeredCourses, newCourse]);
+        setRegisteredCourses(prev => [...prev, newCourse]);
         setSelectedCourseId('');
+        setSections([]);
         setCommitState('dirty');
+        setNotice({ type: 'success', message: `${newCourse.name} added to draft.` });
     };
 
-    const handleDropCourse = (semester_course_id: number) => {
-        setRegisteredCourses(registeredCourses.filter(c => c.semester_course_id !== semester_course_id));
-        setCommitState('dirty');
+    const handleDropCourse = async (semesterCourseId: number) => {
+        const dropped = registeredCourses.find(c => c.semester_course_id === semesterCourseId);
+        try {
+            await api.dropSection(currentUserId, semesterCourseId);
+            setRegisteredCourses(prev => prev.filter(c => c.semester_course_id !== semesterCourseId));
+            setCommitState('dirty');
+            if (dropped) setNotice({ type: 'info', message: `${dropped.name} removed.` });
+        } catch {
+            setNotice({ type: 'error', message: 'Failed to drop course.' });
+        }
     };
 
-    const handleCommitSchedule = () => {
+    const handleCommitSchedule = async () => {
         setCommitState('committing');
-
-        setTimeout(() => {
-            console.log("Committed to DB:", registeredCourses);
+        setNotice({ type: 'info', message: 'Saving schedule...' });
+        try {
+            const draftIds = registeredCourses.map(c => c.semester_course_id);
+            await api.commitSchedule(currentUserId, draftIds);
             setCommitState('success');
-
-            setTimeout(() => {
-                setCommitState('clean');
-            }, 2000);
-
-        }, 1500);
+            setNotice({ type: 'success', message: 'Schedule saved successfully.' });
+            setTimeout(() => setCommitState('clean'), 2000);
+        } catch {
+            setCommitState('dirty');
+            setNotice({ type: 'error', message: 'Failed to save schedule.' });
+        }
     };
 
-    const selectedCourse = INITIAL_AVAILABLE_COURSES.find(c => c.course_id === selectedCourseId);
+    const selectedCourse = availableCourses.find(c => c.course_id === selectedCourseId);
+
+    if (loading) {
+        return (
+            <div className="min-vh-100 d-flex align-items-center justify-content-center">
+                <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <div className="min-vh-100 pb-5" style={{ backgroundColor: '#f8f9fc', paddingTop: '4rem' }}>
-            <div className="container" style={{ maxWidth: '1100px' }}>
-                <div className="text-center mb-5">
-                    <h1 className="fw-bolder text-success mb-2" style={{ letterSpacing: '-0.5px' }}>Course Registration Portal</h1>
+        <div className="min-vh-100 pb-5 page-body">
+            <PageMenu switchLabel="Project Page" onSwitchPage={onSwitchPage} onLogout={onLogout} isDark={isDark} onToggleDark={onToggleDark} userRole="student" />
+            <FloatingNotice notice={notice} />
+            <div className="container container-main">
+                <div className="text-center mb-5 fade-up">
+                    <h1 className="fw-bolder mb-1 page-title" style={{ letterSpacing: '-0.5px' }}>Course Registration Portal</h1>
+                    <p className="text-muted mb-0">Manage your semester schedule below.</p>
                 </div>
 
-                <RegisteredCoursesTable
-                    courses={registeredCourses}
-                    onDropCourse={handleDropCourse}
-                    onCommit={handleCommitSchedule}
-                    commitState={commitState}
-                />
+                <div className="section-enter">
+                    <RegisteredCoursesTable
+                        courses={registeredCourses}
+                        onDropCourse={handleDropCourse}
+                        onCommit={handleCommitSchedule}
+                        commitState={commitState}
+                    />
+                </div>
 
-                <AvailableCoursesGrid
-                    courses={INITIAL_AVAILABLE_COURSES}
-                    selectedCourseId={selectedCourseId}
-                    onSelectCourse={handleSelectCourse}
-                />
+                <div className="section-enter">
+                    <AvailableCoursesGrid
+                        courses={availableCourses}
+                        selectedCourseId={selectedCourseId}
+                        onSelectCourse={handleSelectCourse}
+                    />
+                </div>
 
                 {selectedCourseId && selectedCourse && (
                     <CourseSectionsTable
                         course={selectedCourse}
-                        sections={MOCK_SECTIONS[selectedCourseId] || []}
+                        sections={sections}
                         onAddSection={handleAddSection}
                         onClose={handleCloseSections}
                     />
