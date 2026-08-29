@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { styles, inlineStyles } from './ChatbotStyles';
+import { styles, inlineStyles } from '../../styles/components/chatbot/ChatbotStyles.ts';
 
 interface Message {
     id: number;
@@ -16,7 +16,7 @@ interface ChatbotWidgetProps {
 
 export default function ChatbotWidget({ isOpen, onClose, userRole }: ChatbotWidgetProps) {
     const [messages, setMessages] = useState<Message[]>([
-        { id: 1, sender: 'bot', text: 'Hi! I am the BAU Portal Assistant. How can I help you today?' }
+        { id: 1, sender: 'bot', text: 'Hi! I am the BAU AI Portal Assistant. How can I help you today?' }
     ]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -63,7 +63,7 @@ export default function ChatbotWidget({ isOpen, onClose, userRole }: ChatbotWidg
                     <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
                         <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
                     </svg>
-                    Portal Assistant
+                    AI Assistant
                 </h6>
                 <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close"></button>
             </div>
