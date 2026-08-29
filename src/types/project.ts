@@ -1,34 +1,37 @@
-export interface Team {
-    team_id: number;          // maps to teams.id
-    project_title: string;    // teams.project_title
-    status: string;           // teams.status (project_status enum)
-    min_users: number;
-    max_users: number;
-    introduction_link: string;
-    supervisor_id: string;
-    // Joined from users WHERE id = supervisor_id:
-    supervisor_name?: string;
-}
-
 export interface User {
-    user_id: string;          // maps to users.id (uuid)
+    user_id: string;
     full_name: string;
     university_id: string;
-    role: 'student' | 'teacher' | 'supervisor';
+    role: 'student' | 'supervisor';
 }
 
-export interface TeamMember extends User {
+export interface Team {
     team_id: number;
-    team_role: string;        // maps to team_members.role (aliased in Supabase query)
+    project_title: string | null;
+    status: 'pending' | 'approved' | 'rejected' | null;
+    min_users: number;
+    max_users: number;
+    introduction_link: string | null;
+    supervisor_id: string | null;
+    supervisor_name?: string | null;
+    member_count?: number;
+}
+
+export interface TeamMember {
+    team_id: number;
+    user_id: string;
+    full_name: string;
+    university_id: string;
+    team_role: string | null;
 }
 
 export interface Invitation {
     sender_user_id: string;
     receiver_user_id: string;
-    created_at: string;
-    // Joined from users WHERE id = sender_user_id:
     sender_full_name: string;
     sender_university_id: string;
+    created_at: string;
+    invitation_type?: string;
 }
 
 export interface Reservation {
