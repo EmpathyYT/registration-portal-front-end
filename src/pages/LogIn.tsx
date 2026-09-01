@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import type { UserRole } from '../App';
 import PageMenu from '../components/layout/PageMenu';
 import FloatingNotice, { type NoticeState } from '../components/layout/FloatingNotice';
-import * as api from '../lib/api';
+import { authRepository } from '../features/auth/repositories/auth_repository';
 import { styles } from '../styles/pages/LogInStyles';
 
 type LogInProps = {
@@ -29,7 +29,7 @@ export default function LogIn({ onLogin, isDark, onToggleDark }: LogInProps) {
         setIsSubmitting(true);
         setNotice(null);
         try {
-            const user = await api.login(uniId.trim(), password);
+            const user = await authRepository.login(uniId.trim(), password);
             const role: UserRole = user.role === 'supervisor' ? 'supervisor' : 'student';
             onLogin(role);
         } catch {

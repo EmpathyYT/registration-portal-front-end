@@ -5,7 +5,7 @@ import { useDarkMode } from './hooks/useDarkMode';
 import LogIn from "./pages/LogIn.tsx";
 import RegistrationA from './pages/RegistrationA';
 import ProjectDashboard from "./pages/ProjectDashboard.tsx";
-import * as api from './lib/api';
+import { authRepository } from './features/auth/repositories/auth_repository';
 
 
 type ActivePage = 'registration' | 'project';
@@ -26,7 +26,7 @@ function App() {
   };
 
   const handleLogout = async () => {
-    try { await api.logout(); } catch { /* ignore */ }
+    try { await authRepository.logout(); } catch { /* ignore */ }
     setIsAuthenticated(false);
     setActivePage('registration');
     setUserRole('student');

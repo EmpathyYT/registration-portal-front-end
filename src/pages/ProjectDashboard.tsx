@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import type { Team, TeamMember, Invitation, Reservation } from '../types/project';
 import type { UserRole } from '../App';
-import * as api from '../lib/api';
+import { authRepository } from '../features/auth/repositories/auth_repository';
+import { teamsRepository } from '../features/teams/repositories/teams_repository';
+import { reservationsRepository } from '../features/reservations/repositories/reservations_repository';
 import MyTeamPanel from '../components/project/MyTeamPanel';
 import AvailableTeamsGrid from '../components/project/AvailableTeamsGrid';
 import InvitationsFeed from '../components/project/InvitationsFeed';
@@ -13,6 +15,60 @@ import ManageMemberModal from '../components/project/ManageMemberModal';
 import SupervisorTeamSelector, { type SupervisedTeamData } from '../components/project/SupervisorTeamSelector';
 import PageMenu from '../components/layout/PageMenu';
 import FloatingNotice, { type NoticeState } from '../components/layout/FloatingNotice';
+import type { TeamDto } from '../features/teams/dtos/team_dto';
+import type { TeamMemberDto } from '../features/teams/dtos/team_member_dto';
+import type { InvitationDto } from '../features/teams/dtos/invitation_dto';
+import type { ReservationDto } from '../features/reservations/dtos/reservation_dto';
+
+// --- DTO → local type mappers ---
+
+function teamDtoToTeam(dto: TeamDto, supervisorName?: string): Team {
+    return {
+        team_id: dto.team_id,
+        project_title: dto.project_title,
+        status: dto.status as Team['status'],
+        min_users: dto.min_users,
+        max_users: dto.max_users,
+        introduction_link: dto.introduction_link,
+        supervisor_id: dto.supervisor_id,
+        supervisor_name: supervisorName,
+    };
+}
+
+function memberDtoToMember(dto: TeamMemberDto): TeamMember {
+    return {
+        team_id: dto.team_id,
+        user_id: dto.user_id,
+        full_name: dto.user_id, // full_name not available in TeamMemberDto; fallback to user_id
+        university_id: '',       // university_id not available in TeamMemberDto
+        team_role: dto.role,
+    };
+}
+
+function invitationDtoToInvitation(dto: InvitationDto): Invitation {
+    return {
+        sender_user_id: dto.sender_user_id,
+        receiver_user_id: dto.receiver_user_id,
+        sender_full_name: dto.sender_user_id, // full_name not in InvitationDto; fallback to user_id
+        sender_university_id: '',              // not available in InvitationDto
+        created_at: dto.created_at,
+        invitation_type: dto.invitation_type,
+    };
+}
+
+function reservationDtoToReservation(dto: ReservationDto): Reservation {
+    return {
+        team_id: dto.team_id,
+        location: dto.location,
+        reservation_time: dto.reservation_time,
+    };
+}
+
+/** Fetch team reservation and return as array (repo returns single-or-null). */
+async function fetchTeamReservations(teamId: number): Promise<Reservation[]> {
+    const dto = await reservationsRepository.getTeamReservation(teamId);
+    return dto ? [reservationDtoToReservation(dto)] : [];
+}
 
 type ProjectDashboardProps = {
     onSwitchPage?: () => void;
@@ -58,45 +114,50 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
     useEffect(() => {
         async function load() {
             try {
-                const session = await api.getCurrentSession();
+                const session = await authRepository.getCurrentSession();
                 if (!session) return;
                 setCurrentUserId(session.user_id);
                 setCurrentUserName(session.full_name);
 
-                const invites = await api.getPendingInvitations(session.user_id);
-                setInvitations(invites);
+                const inviteDtos = await teamsRepository.getPendingInvitations(session.user_id);
+                setInvitations(inviteDtos.map(invitationDtoToInvitation));
 
                 if (isSupervisor) {
-                    const [supervised, unsupervised] = await Promise.all([
-                        api.getSupervisedTeams(session.user_id),
-                        api.getUnsupervisedTeams(),
+                    const [supervisedDtos, unsupervisedDtos] = await Promise.all([
+                        teamsRepository.getSupervisedTeams(session.user_id),
+                        teamsRepository.getUnsupervisedTeams(),
                     ]);
                     const enriched: SupervisedTeamData[] = await Promise.all(
-                        supervised.map(async (team) => {
-                            const [members, teamReservations] = await Promise.all([
-                                api.getTeamMembers(team.team_id),
-                                api.getTeamReservations(team.team_id),
+                        supervisedDtos.map(async (teamDto) => {
+                            const [memberDtos, teamReservations] = await Promise.all([
+                                teamsRepository.getTeamMembers(teamDto.team_id),
+                                fetchTeamReservations(teamDto.team_id),
                             ]);
-                            return { team, members, reservations: teamReservations };
+                            return {
+                                team: teamDtoToTeam(teamDto),
+                                members: memberDtos.map(memberDtoToMember),
+                                reservations: teamReservations,
+                            };
                         })
                     );
                     setSupervisedTeams(enriched);
-                    setUnsupervisedTeams(unsupervised);
+                    setUnsupervisedTeams(unsupervisedDtos.map(dto => teamDtoToTeam(dto)));
                     if (enriched.length > 0) setSelectedSupTeamId(enriched[0].team.team_id);
                 } else {
-                    const team = await api.getUserTeam(session.user_id);
-                    if (team) {
+                    const teamDto = await teamsRepository.getUserTeam(session.user_id);
+                    if (teamDto) {
+                        const team = teamDtoToTeam(teamDto);
                         setMyTeamData(team);
                         setHasTeam(true);
-                        const [members, teamReservations] = await Promise.all([
-                            api.getTeamMembers(team.team_id),
-                            api.getTeamReservations(team.team_id),
+                        const [memberDtos, teamReservations] = await Promise.all([
+                            teamsRepository.getTeamMembers(team.team_id),
+                            fetchTeamReservations(team.team_id),
                         ]);
-                        setTeamMembers(members);
+                        setTeamMembers(memberDtos.map(memberDtoToMember));
                         setReservations(teamReservations);
                     } else {
-                        const teams = await api.getAvailableTeams();
-                        setAvailableTeams(teams);
+                        const teamDtos = await teamsRepository.getAvailableTeams();
+                        setAvailableTeams(teamDtos.map(dto => teamDtoToTeam(dto)));
                     }
                 }
             } catch {
@@ -110,18 +171,19 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
 
     const handleAcceptInvite = async (senderUserId: string) => {
         try {
-            await api.acceptInvitation(senderUserId, currentUserId);
+            await teamsRepository.acceptInvitation(senderUserId, currentUserId);
             setInvitations(prev => prev.filter(i => i.sender_user_id !== senderUserId));
             if (!isSupervisor) {
-                const team = await api.getUserTeam(currentUserId);
-                if (team) {
+                const teamDto = await teamsRepository.getUserTeam(currentUserId);
+                if (teamDto) {
+                    const team = teamDtoToTeam(teamDto);
                     setMyTeamData(team);
                     setHasTeam(true);
-                    const [members, teamReservations] = await Promise.all([
-                        api.getTeamMembers(team.team_id),
-                        api.getTeamReservations(team.team_id),
+                    const [memberDtos, teamReservations] = await Promise.all([
+                        teamsRepository.getTeamMembers(team.team_id),
+                        fetchTeamReservations(team.team_id),
                     ]);
-                    setTeamMembers(members);
+                    setTeamMembers(memberDtos.map(memberDtoToMember));
                     setReservations(teamReservations);
                 }
             }
@@ -133,7 +195,7 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
 
     const handleDeclineInvite = async (senderUserId: string) => {
         try {
-            await api.declineInvitation(senderUserId, currentUserId);
+            await teamsRepository.declineInvitation(senderUserId, currentUserId);
             setInvitations(prev => prev.filter(i => i.sender_user_id !== senderUserId));
             showNotice({ type: 'info', message: 'Invitation declined.' });
         } catch {
@@ -143,11 +205,12 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
 
     const handleCreateTeam = async (projectTitle: string) => {
         try {
-            const team = await api.createTeam(projectTitle, currentUserId);
+            const teamDto = await teamsRepository.createTeam(projectTitle);
+            const team = teamDtoToTeam(teamDto);
             setMyTeamData(team);
             setHasTeam(true);
-            const members = await api.getTeamMembers(team.team_id);
-            setTeamMembers(members);
+            const memberDtos = await teamsRepository.getTeamMembers(team.team_id);
+            setTeamMembers(memberDtos.map(memberDtoToMember));
             setReservations([]);
             setShowCreateModal(false);
             showNotice({ type: 'success', message: `Team "${projectTitle}" created.` });
@@ -158,7 +221,7 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
 
     const handleJoinRequest = async (teamId: number) => {
         try {
-            await api.requestToJoinTeam(currentUserId, teamId);
+            await teamsRepository.requestToJoinTeam(teamId);
             showNotice({ type: 'info', message: 'Join request sent.' });
         } catch {
             showNotice({ type: 'error', message: 'Failed to send join request.' });
@@ -168,13 +231,13 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
     const handleLeaveTeam = async () => {
         if (!myTeamData || !window.confirm('Are you sure you want to leave this team?')) return;
         try {
-            await api.leaveTeam(currentUserId, myTeamData.team_id);
+            await teamsRepository.leaveTeam(currentUserId, myTeamData.team_id);
             setHasTeam(false);
             setMyTeamData(null);
             setTeamMembers([]);
             setReservations([]);
-            const teams = await api.getAvailableTeams();
-            setAvailableTeams(teams);
+            const teamDtos = await teamsRepository.getAvailableTeams();
+            setAvailableTeams(teamDtos.map(dto => teamDtoToTeam(dto)));
             showNotice({ type: 'info', message: 'You left the team.' });
         } catch {
             showNotice({ type: 'error', message: 'Failed to leave team.' });
@@ -186,7 +249,7 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
         const activeTeam = supervisedTeams.find(t => t.team.team_id === selectedSupTeamId)?.team;
         if (!activeTeam || !window.confirm(`Stop supervising "${activeTeam.project_title}"?`)) return;
         try {
-            await api.stopSupervising(selectedSupTeamId);
+            await teamsRepository.stopSupervising(selectedSupTeamId);
             const remaining = supervisedTeams.filter(t => t.team.team_id !== selectedSupTeamId);
             const freed: Team = { ...activeTeam, supervisor_id: '', supervisor_name: undefined };
             setSupervisedTeams(remaining);
@@ -200,16 +263,16 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
 
     const handleSuperviseTeam = async (teamId: number) => {
         try {
-            await api.setTeamSupervisor(teamId, currentUserId);
+            await teamsRepository.setTeamSupervisor(teamId, currentUserId);
             const team = unsupervisedTeams.find(t => t.team_id === teamId);
             if (!team) return;
-            const [members, teamReservations] = await Promise.all([
-                api.getTeamMembers(teamId),
-                api.getTeamReservations(teamId),
+            const [memberDtos, teamReservations] = await Promise.all([
+                teamsRepository.getTeamMembers(teamId),
+                fetchTeamReservations(teamId),
             ]);
             const newEntry: SupervisedTeamData = {
                 team: { ...team, supervisor_id: currentUserId, supervisor_name: currentUserName },
-                members,
+                members: memberDtos.map(memberDtoToMember),
                 reservations: teamReservations,
             };
             setSupervisedTeams(prev => [...prev, newEntry]);
@@ -226,11 +289,11 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
         if (!activeTeam) return;
         try {
             if (reservationToEdit) {
-                await api.updatePresentation(activeTeam.team_id, reservationToEdit.reservation_time, location, date);
+                await reservationsRepository.updatePresentation(activeTeam.team_id, reservationToEdit.reservation_time, location, date);
             } else {
-                await api.bookPresentation(activeTeam.team_id, location, date);
+                await reservationsRepository.bookPresentation(activeTeam.team_id, location, date);
             }
-            const updated = await api.getTeamReservations(activeTeam.team_id);
+            const updated = await fetchTeamReservations(activeTeam.team_id);
             if (isSupervisor) {
                 setSupervisedTeams(prev => prev.map(t =>
                     t.team.team_id === selectedSupTeamId ? { ...t, reservations: updated } : t
@@ -248,7 +311,7 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
     const handleDeleteReservation = async (r: Reservation) => {
         if (!window.confirm(`Delete reservation at ${r.location}?`)) return;
         try {
-            await api.deletePresentation(r.team_id, r.reservation_time);
+            await reservationsRepository.deletePresentation(r.team_id, r.reservation_time);
             if (isSupervisor) {
                 setSupervisedTeams(prev => prev.map(t =>
                     t.team.team_id === selectedSupTeamId
@@ -268,7 +331,7 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
         const activeTeam = getActiveTeam();
         if (!activeTeam) return;
         try {
-            await api.updateMemberRole(activeTeam.team_id, userId, newRole);
+            await teamsRepository.updateMemberRole(activeTeam.team_id, userId, newRole);
             setActiveMembers(prev => prev.map(m => m.user_id === userId ? { ...m, team_role: newRole } : m));
             setMemberToManage(null);
             showNotice({ type: 'success', message: 'Member role updated.' });
@@ -281,7 +344,7 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
         const activeTeam = getActiveTeam();
         if (!activeTeam) return;
         try {
-            await api.promoteToLeader(activeTeam.team_id, userId);
+            await teamsRepository.promoteToLeader(activeTeam.team_id, userId);
             setActiveMembers(prev => prev.map(m => {
                 if (m.user_id === userId) return { ...m, team_role: 'Team Leader' };
                 if (m.team_role === 'Team Leader') return { ...m, team_role: 'Member' };
@@ -298,7 +361,7 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
         const activeTeam = getActiveTeam();
         if (!activeTeam || !window.confirm('Remove this member from the team?')) return;
         try {
-            await api.kickMember(activeTeam.team_id, userId);
+            await teamsRepository.kickMember(activeTeam.team_id, userId);
             setActiveMembers(prev => prev.filter(m => m.user_id !== userId));
             setMemberToManage(null);
             showNotice({ type: 'success', message: 'Member removed.' });
@@ -309,7 +372,7 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
 
     const handleInviteMember = async (receiverUniId: string) => {
         try {
-            await api.sendInvitation(currentUserId, receiverUniId);
+            await teamsRepository.sendInvitation(currentUserId, receiverUniId);
             setShowInviteModal(false);
             showNotice({ type: 'success', message: 'Invitation sent.' });
         } catch {
@@ -321,7 +384,8 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
         const activeTeam = getActiveTeam();
         if (!activeTeam) return;
         try {
-            await api.uploadTeamDocument(activeTeam.team_id, link);
+            // TODO: Update UI modal to accept file uploads instead of URL strings to match new backend architecture.
+            // await teamsRepository.uploadTeamDocument(activeTeam.team_id, file);
             if (isSupervisor) {
                 setSupervisedTeams(prev => prev.map(t =>
                     t.team.team_id === selectedSupTeamId ? { ...t, team: { ...t.team, introduction_link: link } } : t
