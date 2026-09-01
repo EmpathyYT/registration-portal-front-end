@@ -3,6 +3,7 @@ import { MockTeamsDataSource } from '../datasources/mock_teams_data_source';
 import type { TeamDto } from '../dtos/team_dto';
 import type { TeamMemberDto } from '../dtos/team_member_dto';
 import type { InvitationDto } from '../dtos/invitation_dto';
+import { SupabaseTeamsDataSource } from '../datasources/supabase_teams_data_source';
 
 /**
  * Repository for teams, delegating to an injected TeamsDataSource.
@@ -18,12 +19,12 @@ export class TeamsRepository {
         return this.dataSource.getAvailableTeams();
     }
 
-    createTeam(projectTitle: string, userId: string): Promise<TeamDto> {
-        return this.dataSource.createTeam(projectTitle, userId);
+    createTeam(projectTitle: string): Promise<TeamDto> {
+        return this.dataSource.createTeam(projectTitle);
     }
 
-    requestToJoinTeam(userId: string, teamId: number): Promise<void> {
-        return this.dataSource.requestToJoinTeam(userId, teamId);
+    requestToJoinTeam(teamId: number): Promise<void> {
+        return this.dataSource.requestToJoinTeam(teamId);
     }
 
     getUserTeam(userId: string): Promise<TeamDto | null> {
@@ -50,8 +51,8 @@ export class TeamsRepository {
         return this.dataSource.updateMemberRole(teamId, userId, newRole);
     }
 
-    uploadTeamDocument(teamId: number, documentUrl: string): Promise<void> {
-        return this.dataSource.uploadTeamDocument(teamId, documentUrl);
+    uploadTeamDocument(teamId: number, document: File): Promise<void> {
+        return this.dataSource.uploadTeamDocument(teamId, document);
     }
 
     getPendingInvitations(userId: string): Promise<InvitationDto[]> {
@@ -99,4 +100,4 @@ export class TeamsRepository {
     }
 }
 
-export const teamsRepository = new TeamsRepository(new MockTeamsDataSource());
+export const teamsRepository = new TeamsRepository(new SupabaseTeamsDataSource());

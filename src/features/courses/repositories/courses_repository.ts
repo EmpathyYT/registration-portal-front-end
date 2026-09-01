@@ -1,8 +1,8 @@
 import type { CoursesDataSource } from '../datasources/courses_data_source';
-import { MockCoursesDataSource } from '../datasources/mock_courses_data_source';
 import type { CourseDto } from '../dtos/course_dto';
 import type { SemesterCourseDto } from '../dtos/semester_course_dto';
 import type { EnrollmentDto } from '../dtos/enrollment_dto';
+import { SupabaseCoursesDataSource } from '../datasources/supabase_courses_data_source';
 
 /**
  * Repository for courses, delegating to an injected CoursesDataSource.
@@ -35,4 +35,4 @@ export class CoursesRepository {
     }
 }
 
-export const coursesRepository = new CoursesRepository(new MockCoursesDataSource());
+export const coursesRepository = new CoursesRepository(new SupabaseCoursesDataSource());

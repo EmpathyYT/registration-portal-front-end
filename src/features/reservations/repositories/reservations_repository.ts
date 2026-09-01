@@ -1,6 +1,6 @@
 import type { ReservationsDataSource } from '../datasources/reservations_data_source';
-import { MockReservationsDataSource } from '../datasources/mock_reservations_data_source';
 import type { ReservationDto } from '../dtos/reservation_dto';
+import { SupabaseReservationsDataSource } from '../datasources/supabase_reservations_data_source';
 
 /**
  * Repository for reservations, delegating to an injected ReservationsDataSource.
@@ -29,4 +29,4 @@ export class ReservationsRepository {
     }
 }
 
-export const reservationsRepository = new ReservationsRepository(new MockReservationsDataSource());
+export const reservationsRepository = new ReservationsRepository(new SupabaseReservationsDataSource());

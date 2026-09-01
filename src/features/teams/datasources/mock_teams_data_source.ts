@@ -6,6 +6,7 @@ import type { TeamEntity } from '../entities/team_entity';
 import type { TeamMemberEntity } from '../entities/team_member_entity';
 import type { InvitationEntity } from '../entities/invitation_entity';
 import type { UserEntity } from '../../auth/entities/user_entity';
+import { authRepository } from '../../auth/repositories/auth_repository';
 
 /** Test user pool: "you" (user1, matches MockAuthDataSource's fixed session id) plus 6 others. */
 const MOCK_USERS: UserEntity[] = [
@@ -79,10 +80,7 @@ export class MockTeamsDataSource extends TeamsDataSource {
         return this.teams.map((team) => TeamDto.fromEntity(team));
     }
 
-    async createTeam(projectTitle: string, userId: string): Promise<TeamDto> {
-        if (this.findMembership(userId)) {
-            throw new Error('User already belongs to a team');
-        }
+    async createTeam(projectTitle: string): Promise<TeamDto> {
 
         const nextId = this.teams.reduce((max, t) => Math.max(max, t.id), 0) + 1;
         const team: TeamEntity = {
@@ -94,15 +92,22 @@ export class MockTeamsDataSource extends TeamsDataSource {
             introduction_link: null,
             supervisor_id: null,
         };
-
+        const currentUser = (await authRepository.getCurrentSession())?.user_id;
+        if (!currentUser) {
+            throw new Error('No current user session found');
+        }
         this.teams.push(team);
-        this.addMember(team.id, userId, 'Team Leader');
+        this.addMember(team.id, currentUser, 'Team Leader');
 
         return TeamDto.fromEntity(team);
     }
 
-    async requestToJoinTeam(userId: string, teamId: number): Promise<void> {
-        this.addMember(teamId, userId, 'Member');
+    async requestToJoinTeam(teamId: number): Promise<void> {
+          const currentUser = (await authRepository.getCurrentSession())?.user_id;
+        if (!currentUser) {
+            throw new Error('No current user session found');
+        }
+        this.addMember(teamId, currentUser, 'Member');
     }
 
     async getUserTeam(userId: string): Promise<TeamDto | null> {
@@ -154,12 +159,12 @@ export class MockTeamsDataSource extends TeamsDataSource {
         member.role = newRole;
     }
 
-    async uploadTeamDocument(teamId: number, documentUrl: string): Promise<void> {
+    async uploadTeamDocument(teamId: number, documentUrl: File): Promise<void> {
         const team = this.teams.find((t) => t.id === teamId);
         if (!team) {
             throw new Error('Team not found');
         }
-        team.introduction_link = documentUrl;
+        team.introduction_link = URL.createObjectURL(documentUrl);
     }
 
     async getPendingInvitations(userId: string): Promise<InvitationDto[]> {
