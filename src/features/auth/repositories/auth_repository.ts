@@ -1,5 +1,5 @@
 import type { AuthDataSource } from '../datasources/auth_data_source';
-import { MockAuthDataSource } from '../datasources/mock_auth_data_source';
+import { SupabaseAuthDataSource } from '../datasources/supabase_auth_data_source';
 import type { UserDto } from '../dtos/user_dto';
 
 /**
@@ -25,4 +25,4 @@ export class AuthRepository {
     }
 }
 
-export const authRepository = new AuthRepository(new MockAuthDataSource());
+export const authRepository = new AuthRepository(new SupabaseAuthDataSource());

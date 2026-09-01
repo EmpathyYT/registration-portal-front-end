@@ -1,7 +1,8 @@
 import { TeamsDataSource } from './teams_data_source';
-import type { TeamDto } from '../dtos/team_dto';
-import type { TeamMemberDto } from '../dtos/team_member_dto';
-import type { InvitationDto } from '../dtos/invitation_dto';
+import { TeamDto } from '../dtos/team_dto';
+import { TeamMemberDto } from '../dtos/team_member_dto';
+import { InvitationDto } from '../dtos/invitation_dto';
+import { supabase } from '../../../core/supabaseClient';
 
 /**
  * Supabase-backed implementation of TeamsDataSource.
@@ -9,86 +10,346 @@ import type { InvitationDto } from '../dtos/invitation_dto';
  */
 export class SupabaseTeamsDataSource extends TeamsDataSource {
     async getAvailableTeams(): Promise<TeamDto[]> {
-        throw new Error('Not implemented');
+        const {data, error} = await supabase.from('teams').select('*');
+        if (error) {
+            throw new Error(`Failed to fetch available teams: ${error.message}`);
+        
+        }
+        return data.map((team) => new TeamDto({
+            team_id: team.id,
+            min_users: team.min_users,
+            max_users: team.max_users,
+            project_title: team.project_title,
+            status: team.status,
+            introduction_link: team.introduction_link,
+            supervisor_id: team.supervisor_id,
+        }));
     }
 
-    async createTeam(_projectTitle: string, _userId: string): Promise<TeamDto> {
-        throw new Error('Not implemented');
+    async createTeam(_projectTitle: string): Promise<TeamDto> {
+        const { data, error } = await supabase
+            .from('teams')
+            .insert({
+                project_title: _projectTitle,
+                min_users: 1,
+                max_users: 6,
+            })
+            .select()
+            .single();
+
+        if (error) {
+            throw new Error(`Failed to create team: ${error.message}`);
+        }
+
+        return new TeamDto({
+            team_id: data.id,
+            min_users: data.min_users,
+            max_users: data.max_users,
+            project_title: data.project_title,
+            status: data.status,
+            introduction_link: data.introduction_link,
+            supervisor_id: data.supervisor_id,
+        });
     }
 
-    async requestToJoinTeam(_userId: string, _teamId: number): Promise<void> {
-        throw new Error('Not implemented');
+    async requestToJoinTeam(_teamId: number): Promise<void> {
+        const { error } = await supabase.rpc('request_to_join_team', {
+            p_team_id: _teamId,
+        });
+
+        if (error) {
+            throw new Error(`Failed to request to join team: ${error.message}`);
+        }
     }
 
     async getUserTeam(_userId: string): Promise<TeamDto | null> {
-        throw new Error('Not implemented');
+        const { data, error } = await supabase
+            .from('team_members')
+            .select('team_id')
+            .eq('user_id', _userId)
+            .single();
+
+        if (error) {
+            throw new Error(`Failed to fetch user's team: ${error.message}`);
+        }
+
+        if (!data) {
+            return null;
+        }
+
+        const teamId = data.team_id;
+
+        const { data: teamData, error: teamError } = await supabase
+            .from('teams')
+            .select('*')
+            .eq('id', teamId)
+            .single();
+
+        if (teamError) {
+            throw new Error(`Failed to fetch team details: ${teamError.message}`);
+        }
+
+        return new TeamDto({
+            team_id: teamData.id,
+            min_users: teamData.min_users,
+            max_users: teamData.max_users,
+            project_title: teamData.project_title,
+            status: teamData.status,
+            introduction_link: teamData.introduction_link,
+            supervisor_id: teamData.supervisor_id,
+        });
     }
 
     async getTeamMembers(_teamId: number): Promise<TeamMemberDto[]> {
-        throw new Error('Not implemented');
+        const { data, error } = await supabase
+            .from('team_members')
+            .select('*')
+            .eq('team_id', _teamId);
+
+        if (error) {
+            throw new Error(`Failed to fetch team members: ${error.message}`);
+        }
+
+        return data.map((member) => new TeamMemberDto({
+            team_id: member.team_id,
+            user_id: member.user_id,
+            role: member.role,
+        }));
     }
 
     async leaveTeam(_userId: string, _teamId: number): Promise<void> {
-        throw new Error('Not implemented');
+        const { error } = await supabase
+            .from('team_members')
+            .delete()
+            .eq('user_id', _userId)
+            .eq('team_id', _teamId);
+
+        if (error) {
+            throw new Error(`Failed to leave team: ${error.message}`);
+        }
     }
 
     async kickMember(_teamId: number, _memberUserId: string): Promise<void> {
-        throw new Error('Not implemented');
+        const { error } = await supabase
+            .from('team_members')
+            .delete()
+            .eq('team_id', _teamId)
+            .eq('user_id', _memberUserId);
+
+        if (error) {
+            throw new Error(`Failed to kick member: ${error.message}`);
+        }
     }
 
     async promoteToLeader(_teamId: number, _memberUserId: string): Promise<void> {
-        throw new Error('Not implemented');
+        const { error } = await supabase.rpc('transfer_team_leadership', {
+            p_team_id: _teamId,
+            p_new_leader_user_id: _memberUserId,
+        });
+        
+        if (error) {
+            throw new Error(`Failed to promote member to leader: ${error.message}`);
+        }
     }
 
     async updateMemberRole(_teamId: number, _userId: string, _newRole: string): Promise<void> {
-        throw new Error('Not implemented');
+        const { error } = await supabase.rpc('update_member_role', {
+            p_team_id: _teamId,
+            p_user_id: _userId,
+            p_new_role: _newRole,
+        });
+        
+        if (error) {
+            throw new Error(`Failed to update member role: ${error.message}`);
+        }
     }
 
-    async uploadTeamDocument(_teamId: number, _documentUrl: string): Promise<void> {
-        throw new Error('Not implemented');
+    async uploadTeamDocument(_teamId: number, _document: File): Promise<void> {
+        const { data, error } = await supabase.storage
+            .from('team-documents')
+            .upload(`team_${_teamId}/${_document.name}`, _document, {
+                upsert: true,
+            });
+
+        if (error) {
+            throw new Error(`Failed to upload team document: ${error.message}`);
+        }
+
+        const { error: updateError } = await supabase
+            .from('teams')
+            .update({ introduction_link: data.path })
+            .eq('id', _teamId);
+
+        if (updateError) {
+            throw new Error(`Failed to update team document link: ${updateError.message}`);
+        }
     }
 
     async getPendingInvitations(_userId: string): Promise<InvitationDto[]> {
-        throw new Error('Not implemented');
+        const { data, error } = await supabase
+            .from('invitations')
+            .select('*')
+            .eq('receiver_user_id', _userId);
+
+        if (error) {
+            throw new Error(`Failed to fetch pending invitations: ${error.message}`);
+        }
+
+        return data;
     }
 
     async sendInvitation(_senderId: string, _receiverUniId: string): Promise<void> {
-        throw new Error('Not implemented');
+        const {error: receiverError} = await supabase
+            .from('invitations')
+            .insert({
+                sender_user_id: _senderId,
+                receiver_user_id: _receiverUniId,
+                invitation_type: 'invite',
+            });
+
+        if (receiverError) {
+            throw new Error(`Failed to send invitation: ${receiverError.message}`);
+        }
     }
 
     async acceptInvitation(_senderUserId: string, _receiverUserId: string): Promise<void> {
-        throw new Error('Not implemented');
+        const { error } = await supabase.rpc('accept_invitation', {
+            p_sender_user_id: _senderUserId,
+        });
+
+        if (error) {
+            throw new Error(`Failed to accept invitation: ${error.message}`);
+        }
     }
 
     async declineInvitation(_senderUserId: string, _receiverUserId: string): Promise<void> {
-        throw new Error('Not implemented');
+       const { error } = await supabase
+            .from('invitations')
+            .delete()
+            .eq('sender_user_id', _senderUserId)
+            .eq('receiver_user_id', _receiverUserId);
+
+        if (error) {
+            throw new Error(`Failed to decline invitation: ${error.message}`);
+        }
     }
 
     async getPendingJoinRequests(_teamId: number): Promise<InvitationDto[]> {
-        throw new Error('Not implemented');
+        const { data: members, error: membersError } = await supabase
+            .from('team_members')
+            .select('user_id')
+            .eq('team_id', _teamId);
+
+        if (membersError) {
+            throw new Error(`Failed to fetch team members: ${membersError.message}`);
+        }
+
+        const memberIds = members.map((member) => member.user_id);
+        if (memberIds.length === 0) {
+            return [];
+        }
+
+        const { data, error } = await supabase
+            .from('invitations')
+            .select('*')
+            .in('sender_user_id', memberIds)
+            .eq('invitation_type', 'join_request');
+
+        if (error) {
+            throw new Error(`Failed to fetch pending join requests: ${error.message}`);
+        }
+
+        return data.map((invitation) => new InvitationDto({
+            sender_user_id: invitation.sender_user_id,
+            receiver_user_id: invitation.receiver_user_id,
+            created_at: invitation.created_at,
+            invitation_type: invitation.invitation_type,
+        }));
     }
 
     async acceptJoinRequest(_applicantUserId: string, _teamId: number): Promise<void> {
-        throw new Error('Not implemented');
+        const { error } = await supabase.rpc('accept_join_request', {
+            p_team_id: _teamId,
+            p_applicant_user_id: _applicantUserId,
+        });
+
+        if (error) {
+            throw new Error(`Failed to accept join request: ${error.message}`);
+        }
     }
 
     async declineJoinRequest(_applicantUserId: string, _teamId: number): Promise<void> {
-        throw new Error('Not implemented');
+        const { error } = await supabase.rpc('decline_join_request', {
+            p_team_id: _teamId,
+            p_applicant_user_id: _applicantUserId,
+        });
+
+        if (error) {
+            throw new Error(`Failed to decline join request: ${error.message}`);
+        }
     }
 
     async getSupervisedTeams(_supervisorId: string): Promise<TeamDto[]> {
-        throw new Error('Not implemented');
+        const { data, error } = await supabase
+            .from('teams')
+            .select('*')
+            .eq('supervisor_id', _supervisorId);
+
+        if (error) {
+            throw new Error(`Failed to fetch supervised teams: ${error.message}`);
+        }
+
+        return data.map((team) => new TeamDto({
+            team_id: team.id,
+            min_users: team.min_users,
+            max_users: team.max_users,
+            project_title: team.project_title,
+            status: team.status,
+            introduction_link: team.introduction_link,
+            supervisor_id: team.supervisor_id,
+        }));
     }
 
     async getUnsupervisedTeams(): Promise<TeamDto[]> {
-        throw new Error('Not implemented');
+        const { data, error } = await supabase
+            .from('teams')
+            .select('*')
+            .is('supervisor_id', null);
+
+        if (error) {
+            throw new Error(`Failed to fetch unsupervised teams: ${error.message}`);
+        }
+
+        return data.map((team) => new TeamDto({
+            team_id: team.id,
+            min_users: team.min_users,
+            max_users: team.max_users,
+            project_title: team.project_title,
+            status: team.status,
+            introduction_link: team.introduction_link,
+            supervisor_id: team.supervisor_id,
+        }));
     }
 
     async setTeamSupervisor(_teamId: number, _supervisorId: string): Promise<void> {
-        throw new Error('Not implemented');
+        const { error } = await supabase
+            .from('teams')
+            .update({ supervisor_id: _supervisorId })
+            .eq('id', _teamId);
+
+        if (error) {
+            throw new Error(`Failed to set team supervisor: ${error.message}`);
+        }
     }
 
     async stopSupervising(_teamId: number): Promise<void> {
-        throw new Error('Not implemented');
+        const { error } = await supabase
+            .from('teams')
+            .update({ supervisor_id: null })
+            .eq('id', _teamId);
+
+        if (error) {
+            throw new Error(`Failed to stop supervising team: ${error.message}`);
+        }
     }
 }

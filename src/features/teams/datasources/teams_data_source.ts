@@ -16,17 +16,15 @@ export abstract class TeamsDataSource {
     /**
      * Creates a new team and makes the creator its leader.
      * @param projectTitle - The team's project title.
-     * @param userId - The id of the user creating the team.
      * @returns The newly created team.
      */
-    abstract createTeam(projectTitle: string, userId: string): Promise<TeamDto>;
+    abstract createTeam(projectTitle: string): Promise<TeamDto>;
 
     /**
      * Requests to join a team.
-     * @param userId - The id of the requesting user.
      * @param teamId - The id of the team to join.
      */
-    abstract requestToJoinTeam(userId: string, teamId: number): Promise<void>;
+    abstract requestToJoinTeam(teamId: number): Promise<void>;
 
     /**
      * Gets the team a user currently belongs to.
@@ -74,9 +72,9 @@ export abstract class TeamsDataSource {
     /**
      * Sets a team's document / introduction link.
      * @param teamId - The id of the team.
-     * @param documentUrl - The url of the document.
+     * @param document - The file object of the document.
      */
-    abstract uploadTeamDocument(teamId: number, documentUrl: string): Promise<void>;
+    abstract uploadTeamDocument(teamId: number, document: File): Promise<void>;
 
     /**
      * Gets the invitations a user has been sent.
