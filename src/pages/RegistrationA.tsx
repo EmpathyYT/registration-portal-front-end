@@ -5,7 +5,8 @@ import AvailableCoursesGrid from '../components/registration/AvailableCoursesGri
 import type { Course, CourseSection, EnrolledCourse } from '../types/registration';
 import PageMenu from '../components/layout/PageMenu';
 import FloatingNotice, { type NoticeState } from '../components/layout/FloatingNotice';
-import * as api from '../lib/api';
+import { authRepository } from '../features/auth/repositories/auth_repository';
+import { coursesRepository } from '../features/courses/repositories/courses_repository';
 
 type RegistrationAProps = {
     onSwitchPage: () => void;
@@ -51,16 +52,66 @@ export default function RegistrationA({ onSwitchPage, onLogout, isDark, onToggle
     useEffect(() => {
         async function load() {
             try {
-                const session = await api.getCurrentSession();
+                const session = await authRepository.getCurrentSession();
                 if (!session) return;
                 setCurrentUserId(session.user_id);
 
-                const [courses, schedule] = await Promise.all([
-                    api.getAvailableCourses(),
-                    api.getStudentSchedule(session.user_id),
+                const [courseDtos, enrollmentDtos] = await Promise.all([
+                    coursesRepository.getAvailableCourses(),
+                    coursesRepository.getStudentSchedule(session.user_id),
                 ]);
+
+                // Map CourseDto → Course (course_id is number in DTO; stringify for local type)
+                const courses: Course[] = courseDtos.map(c => ({
+                    course_id: String(c.course_id),
+                    name: c.name,
+                    credits: c.credits,
+                }));
                 setAvailableCourses(courses);
-                setRegisteredCourses(schedule);
+
+                // EnrollmentDto only has user_id + semester_course_id.
+                // Fetch sections for each enrolled course to build full EnrolledCourse objects.
+                if (enrollmentDtos.length > 0) {
+                    const sectionPromises = courseDtos.map(c =>
+                        coursesRepository.getCourseSections(c.course_id)
+                    );
+                    const allSectionGroups = await Promise.all(sectionPromises);
+
+                    // Build a flat lookup: semester_course_id → { courseDto, sectionDto }
+                    const sectionLookup = new Map<number, { courseId: number; courseName: string; credits: number; instructorId: string; daysOfWeek: string; lectureTime: string; location: string }>();
+                    courseDtos.forEach((courseDto, idx) => {
+                        allSectionGroups[idx].forEach(sectionDto => {
+                            const firstSession = sectionDto.sessions[0];
+                            sectionLookup.set(sectionDto.semester_course_id, {
+                                courseId: courseDto.course_id,
+                                courseName: courseDto.name,
+                                credits: courseDto.credits,
+                                instructorId: sectionDto.instructor_id,
+                                daysOfWeek: firstSession?.day_of_week ?? '',
+                                lectureTime: firstSession ? `${firstSession.time}-${firstSession.end_time}` : '',
+                                location: firstSession?.location ?? '',
+                            });
+                        });
+                    });
+
+                    const enrolled: EnrolledCourse[] = enrollmentDtos
+                        .map(e => {
+                            const info = sectionLookup.get(e.semester_course_id);
+                            if (!info) return null;
+                            return {
+                                semester_course_id: e.semester_course_id,
+                                course_id: String(info.courseId),
+                                name: info.courseName,
+                                credits: info.credits,
+                                instructor_name: info.instructorId,
+                                days_of_week: info.daysOfWeek,
+                                lecture_time_in_day: info.lectureTime,
+                                location: info.location,
+                            } satisfies EnrolledCourse;
+                        })
+                        .filter((e): e is EnrolledCourse => e !== null);
+                    setRegisteredCourses(enrolled);
+                }
             } catch {
                 setNotice({ type: 'error', message: 'Failed to load data.' });
             } finally {
@@ -74,8 +125,19 @@ export default function RegistrationA({ onSwitchPage, onLogout, isDark, onToggle
         setSelectedCourseId(courseId);
         setNotice({ type: 'info', message: 'Loading sections...' });
         try {
-            const data = await api.getCourseSections(courseId);
-            setSections(data);
+            const sectionDtos = await coursesRepository.getCourseSections(Number(courseId));
+            // Map SemesterCourseDto → CourseSection (flatten sessions into flat fields)
+            const mapped: CourseSection[] = sectionDtos.map(s => {
+                const firstSession = s.sessions[0];
+                return {
+                    semester_course_id: s.semester_course_id,
+                    instructor_name: s.instructor_id,
+                    days_of_week: firstSession?.day_of_week ?? '',
+                    lecture_time_in_day: firstSession ? `${firstSession.time}-${firstSession.end_time}` : '',
+                    location: firstSession?.location ?? '',
+                };
+            });
+            setSections(mapped);
         } catch {
             setNotice({ type: 'error', message: 'Failed to load sections.' });
         }
@@ -127,7 +189,7 @@ export default function RegistrationA({ onSwitchPage, onLogout, isDark, onToggle
     const handleDropCourse = async (semesterCourseId: number) => {
         const dropped = registeredCourses.find(c => c.semester_course_id === semesterCourseId);
         try {
-            await api.dropSection(currentUserId, semesterCourseId);
+            await coursesRepository.dropSection(currentUserId, semesterCourseId);
             setRegisteredCourses(prev => prev.filter(c => c.semester_course_id !== semesterCourseId));
             setCommitState('dirty');
             if (dropped) setNotice({ type: 'info', message: `${dropped.name} removed.` });
@@ -141,7 +203,7 @@ export default function RegistrationA({ onSwitchPage, onLogout, isDark, onToggle
         setNotice({ type: 'info', message: 'Saving schedule...' });
         try {
             const draftIds = registeredCourses.map(c => c.semester_course_id);
-            await api.commitSchedule(currentUserId, draftIds);
+            await coursesRepository.commitSchedule(currentUserId, draftIds);
             setCommitState('success');
             setNotice({ type: 'success', message: 'Schedule saved successfully.' });
             setTimeout(() => setCommitState('clean'), 2000);
