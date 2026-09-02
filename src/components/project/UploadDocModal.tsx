@@ -1,21 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { styles, modalOverlay } from '../../styles/components/project/UploadDocModalStyles';
 
 interface UploadDocModalProps {
     currentLink?: string;
     onClose: () => void;
-    onSubmit: (link: string) => void;
+    onSubmit: (file: File) => Promise<void>;
 }
 
 export const UploadDocModal: React.FC<UploadDocModalProps> = ({ currentLink = '', onClose, onSubmit }) => {
-    const [link, setLink] = useState(currentLink);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!link.trim()) return;
+        if (!selectedFile) return;
         setIsSaving(true);
-        setTimeout(() => { onSubmit(link); }, 500);
+        try {
+            await onSubmit(selectedFile);
+        } finally {
+            // Always reset the loading state, whether upload succeeded or failed.
+            setIsSaving(false);
+        }
     };
 
     return (
@@ -29,20 +35,31 @@ export const UploadDocModal: React.FC<UploadDocModalProps> = ({ currentLink = ''
                     <div className={styles.body}>
                         <form onSubmit={handleSubmit}>
                             <div className="mb-4">
-                                <label className={styles.label}>Document URL (Google Drive, GitHub, etc.)</label>
+                                <label className={styles.label}>Upload Document File</label>
+                                {currentLink && (
+                                    <p className="text-muted small mb-2">
+                                        A document is already uploaded. Selecting a new file will replace it.
+                                    </p>
+                                )}
                                 <input
-                                    type="url"
+                                    ref={inputRef}
+                                    type="file"
                                     className={styles.input}
-                                    placeholder="https://..."
-                                    value={link}
-                                    onChange={(e) => setLink(e.target.value)}
+                                    onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
                                     disabled={isSaving}
                                     required
                                 />
+                                {selectedFile && (
+                                    <p className="text-muted small mt-2">Selected: <strong>{selectedFile.name}</strong></p>
+                                )}
                             </div>
-                            <button type="submit" className={styles.submitBtn} disabled={isSaving}>
+                            <button
+                                type="submit"
+                                className={styles.submitBtn}
+                                disabled={isSaving || !selectedFile}
+                            >
                                 {isSaving && <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>}
-                                {isSaving ? 'Saving...' : 'Save Document Link'}
+                                {isSaving ? 'Uploading...' : 'Upload Document'}
                             </button>
                         </form>
                     </div>
