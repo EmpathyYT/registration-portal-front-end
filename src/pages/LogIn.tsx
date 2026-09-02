@@ -30,7 +30,7 @@ export default function LogIn({ onLogin, isDark, onToggleDark }: LogInProps) {
         setNotice(null);
         try {
             const user = await authRepository.login(uniId.trim(), password);
-            const role: UserRole = user.role === 'supervisor' ? 'supervisor' : 'student';
+            const role: UserRole = user.role === 'teacher' ? 'supervisor' : 'student';
             onLogin(role);
         } catch {
             setNotice({ type: 'error', message: 'Invalid University ID or password. Please try again.' });

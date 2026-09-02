@@ -380,22 +380,24 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
         }
     };
 
-    const handleUpdateDoc = async (link: string) => {
+    const handleUpdateDoc = async (file: File): Promise<void> => {
         const activeTeam = getActiveTeam();
         if (!activeTeam) return;
         try {
-            // TODO: Update UI modal to accept file uploads instead of URL strings to match new backend architecture.
-            // await teamsRepository.uploadTeamDocument(activeTeam.team_id, file);
+            await teamsRepository.uploadTeamDocument(activeTeam.team_id, file);
+            // Update local state with the filename as a presence marker so the UI
+            // reflects the upload immediately without a full re-fetch.
             if (isSupervisor) {
                 setSupervisedTeams(prev => prev.map(t =>
-                    t.team.team_id === selectedSupTeamId ? { ...t, team: { ...t.team, introduction_link: link } } : t
+                    t.team.team_id === selectedSupTeamId ? { ...t, team: { ...t.team, introduction_link: file.name } } : t
                 ));
             } else {
-                setMyTeamData(prev => prev ? { ...prev, introduction_link: link } : prev);
+                setMyTeamData(prev => prev ? { ...prev, introduction_link: file.name } : prev);
             }
             setShowDocModal(false);
+            showNotice({ type: 'success', message: 'Document uploaded successfully.' });
         } catch {
-            showNotice({ type: 'error', message: 'Failed to update document link.' });
+            showNotice({ type: 'error', message: 'Failed to upload document.' });
         }
     };
 
