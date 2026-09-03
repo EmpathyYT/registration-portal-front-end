@@ -146,7 +146,7 @@ export class SupabaseTeamsDataSource extends TeamsDataSource {
     async promoteToLeader(_teamId: number, _memberUserId: string): Promise<void> {
         const { error } = await supabase.rpc('transfer_team_leadership', {
             p_team_id: _teamId,
-            p_new_leader_user_id: _memberUserId,
+            p_new_leader_id: _memberUserId,
         });
 
         if (error) {
