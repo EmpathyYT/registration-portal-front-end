@@ -12,7 +12,7 @@ export class SupabaseReservationsDataSource extends ReservationsDataSource {
             .from('reservations')
             .select('*')
             .eq('team_id', _teamId)
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('Error fetching reservation:', error);

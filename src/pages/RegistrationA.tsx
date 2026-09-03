@@ -8,6 +8,7 @@ import FloatingNotice, { type NoticeState } from '../components/layout/FloatingN
 import { authRepository } from '../features/auth/repositories/auth_repository';
 import { coursesRepository } from '../features/courses/repositories/courses_repository';
 import { supabase } from '../core/supabaseClient';
+import type { SessionDto } from '../features/courses/dtos/session_dto';
 
 /** Batch-fetches full_name for a list of teacher UUIDs.
  *  The RLS "Allow Reading Teachers" policy allows any authenticated user to read teacher rows. */
@@ -94,19 +95,28 @@ export default function RegistrationA({ onSwitchPage, onLogout, isDark, onToggle
                     );
                     const allSectionGroups = await Promise.all(sectionPromises);
 
-                    // Build a flat lookup: semester_course_id → { courseDto, sectionDto }
+                    // Build a flat lookup: semester_course_id → { courseId, courseName, credits, instructorId, daysOfWeek, lectureTime, location }
+                    const formatTime = (t: string) => t ? t.substring(0, 5) : '';
+                    const formatSessions = (sessions: SessionDto[]) => {
+                        if (!sessions || sessions.length === 0) return { daysOfWeek: '', lectureTime: '', location: '' };
+                        const uniqueDays = Array.from(new Set(sessions.map(s => s.day_of_week))).join(', ');
+                        const uniqueTimes = Array.from(new Set(sessions.map(s => `${formatTime(s.time)}-${formatTime(s.end_time)}`))).join(', ');
+                        const uniqueLocations = Array.from(new Set(sessions.map(s => s.location))).join(', ');
+                        return { daysOfWeek: uniqueDays, lectureTime: uniqueTimes, location: uniqueLocations };
+                    };
+
                     const sectionLookup = new Map<number, { courseId: number; courseName: string; credits: number; instructorId: string; daysOfWeek: string; lectureTime: string; location: string }>();
                     courseDtos.forEach((courseDto, idx) => {
                         allSectionGroups[idx].forEach(sectionDto => {
-                            const firstSession = sectionDto.sessions[0];
+                            const formatted = formatSessions(sectionDto.sessions);
                             sectionLookup.set(sectionDto.id, {
                                 courseId: courseDto.id,
                                 courseName: courseDto.name,
                                 credits: courseDto.credits,
                                 instructorId: sectionDto.instructor_id,
-                                daysOfWeek: firstSession?.day_of_week ?? '',
-                                lectureTime: firstSession ? `${firstSession.time}-${firstSession.end_time}` : '',
-                                location: firstSession?.location ?? '',
+                                daysOfWeek: formatted.daysOfWeek,
+                                lectureTime: formatted.lectureTime,
+                                location: formatted.location,
                             });
                         });
                     });
@@ -150,15 +160,25 @@ export default function RegistrationA({ onSwitchPage, onLogout, isDark, onToggle
             // Batch-fetch instructor names for this course's sections
             const instructorIds = sectionDtos.map(s => s.instructor_id);
             const teacherNames = await fetchTeacherNames(instructorIds);
+
+            const formatTime = (t: string) => t ? t.substring(0, 5) : '';
+            const formatSessions = (sessions: SessionDto[]) => {
+                if (!sessions || sessions.length === 0) return { daysOfWeek: '', lectureTime: '', location: '' };
+                const uniqueDays = Array.from(new Set(sessions.map(s => s.day_of_week))).join(', ');
+                const uniqueTimes = Array.from(new Set(sessions.map(s => `${formatTime(s.time)}-${formatTime(s.end_time)}`))).join(', ');
+                const uniqueLocations = Array.from(new Set(sessions.map(s => s.location))).join(', ');
+                return { daysOfWeek: uniqueDays, lectureTime: uniqueTimes, location: uniqueLocations };
+            };
+
             // Map SemesterCourseDto → CourseSection (flatten sessions into flat fields)
             const mapped: CourseSection[] = sectionDtos.map(s => {
-                const firstSession = s.sessions[0];
+                const formatted = formatSessions(s.sessions);
                 return {
                     semester_course_id: s.id,
                     instructor_name: teacherNames.get(s.instructor_id) ?? s.instructor_id,
-                    days_of_week: firstSession?.day_of_week ?? '',
-                    lecture_time_in_day: firstSession ? `${firstSession.time}-${firstSession.end_time}` : '',
-                    location: firstSession?.location ?? '',
+                    days_of_week: formatted.daysOfWeek,
+                    lecture_time_in_day: formatted.lectureTime,
+                    location: formatted.location,
                 };
             });
             setSections(mapped);
@@ -231,7 +251,8 @@ export default function RegistrationA({ onSwitchPage, onLogout, isDark, onToggle
             setCommitState('success');
             setNotice({ type: 'success', message: 'Schedule saved successfully.' });
             setTimeout(() => setCommitState('clean'), 2000);
-        } catch {
+        } catch (error) {
+            console.error('[commitSchedule] Failed to save schedule:', error);
             setCommitState('dirty');
             setNotice({ type: 'error', message: 'Failed to save schedule.' });
         }

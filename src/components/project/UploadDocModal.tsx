@@ -9,8 +9,22 @@ interface UploadDocModalProps {
 
 export const UploadDocModal: React.FC<UploadDocModalProps> = ({ currentLink = '', onClose, onSubmit }) => {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [fileError, setFileError] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0] ?? null;
+        if (file && file.type !== 'application/pdf') {
+            setFileError('Only PDF files are allowed. Please select a .pdf file.');
+            setSelectedFile(null);
+            // Reset the input so the user can pick again
+            if (inputRef.current) inputRef.current.value = '';
+            return;
+        }
+        setFileError(null);
+        setSelectedFile(file);
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -36,6 +50,7 @@ export const UploadDocModal: React.FC<UploadDocModalProps> = ({ currentLink = ''
                         <form onSubmit={handleSubmit}>
                             <div className="mb-4">
                                 <label className={styles.label}>Upload Document File</label>
+                                <p className="text-muted small mb-2">PDF files only (.pdf)</p>
                                 {currentLink && (
                                     <p className="text-muted small mb-2">
                                         A document is already uploaded. Selecting a new file will replace it.
@@ -44,12 +59,16 @@ export const UploadDocModal: React.FC<UploadDocModalProps> = ({ currentLink = ''
                                 <input
                                     ref={inputRef}
                                     type="file"
+                                    accept="application/pdf"
                                     className={styles.input}
-                                    onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
+                                    onChange={handleFileChange}
                                     disabled={isSaving}
                                     required
                                 />
-                                {selectedFile && (
+                                {fileError && (
+                                    <p className="text-danger small mt-2 fw-semibold">{fileError}</p>
+                                )}
+                                {selectedFile && !fileError && (
                                     <p className="text-muted small mt-2">Selected: <strong>{selectedFile.name}</strong></p>
                                 )}
                             </div>

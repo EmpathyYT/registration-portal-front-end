@@ -81,7 +81,7 @@ export class SupabaseTeamsDataSource extends TeamsDataSource {
             .from('team_members')
             .select('team_id')
             .eq('user_id', _userId)
-            .single();
+            .maybeSingle();
 
         if (error) {
             throw new Error(`Failed to fetch user's team: ${error.message}`);
@@ -144,9 +144,10 @@ export class SupabaseTeamsDataSource extends TeamsDataSource {
     }
 
     async promoteToLeader(_teamId: number, _memberUserId: string): Promise<void> {
+      console.log(`Promoting member ${_memberUserId} to leader of team ${_teamId}`);
         const { error } = await supabase.rpc('transfer_team_leadership', {
             p_team_id: _teamId,
-            p_new_leader_user_id: _memberUserId,
+            p_new_leader_id: _memberUserId,
         });
 
         if (error) {
@@ -167,10 +168,13 @@ export class SupabaseTeamsDataSource extends TeamsDataSource {
     }
 
     async uploadTeamDocument(_teamId: number, _document: File): Promise<void> {
+        // The storage RLS policy requires the path to be exactly: <teamId>/document.pdf
+        const storagePath = `${_teamId}/document.pdf`;
         const { data, error } = await supabase.storage
             .from('team-documents')
-            .upload(`team_${_teamId}/${_document.name}`, _document, {
+            .upload(storagePath, _document, {
                 upsert: true,
+                contentType: 'application/pdf',
             });
 
         if (error) {
@@ -200,19 +204,44 @@ export class SupabaseTeamsDataSource extends TeamsDataSource {
         return data.map((invitation) => new InvitationDto(invitation));
     }
 
-    async sendInvitation(_senderId: string, _receiverUniId: string): Promise<void> {
+    async sendInvitation(_senderId: string, _receiverUniId: string, _teamId: number): Promise<void> {
+        // get_user_id expects a bigint — pass a number, not a string
         const { data: receiverData, error: receiverFetchError } = await supabase.rpc('get_user_id', {
-            p_user_university_id: _receiverUniId,
+            p_user_university_id: Number(_receiverUniId),
         });
+
+        const { data: isTeacher, error: roleFetchError } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', _senderId)
+            .single();
+
+        if (roleFetchError) {
+            throw new Error(`Failed to fetch sender role: ${roleFetchError.message}`);
+        }
+
+        if (isTeacher?.role === 'teacher') {
+            const { error: sendInvitationError } = await supabase.rpc('send_invitation_as_leader', {
+                p_receiver_user_id: receiverData,
+                p_team_id: _teamId,
+            });
+            if (sendInvitationError) {
+                throw new Error(`Failed to send invitation as leader: ${sendInvitationError.message}`);
+            }
+            return;
+        }
 
         if (receiverFetchError) {
             throw new Error(`Failed to fetch receiver user ID: ${receiverFetchError.message}`);
+        }
+        if (!receiverData) {
+            throw new Error('Failed to send invitation: Student with that ID not found.');
         }
         const { error: receiverError } = await supabase
             .from('invitations')
             .insert({
                 sender_user_id: _senderId,
-                receiver_user_id: receiverData.id,
+                receiver_user_id: receiverData,
                 invitation_type: 'invite',
             });
 

@@ -88,8 +88,9 @@ export abstract class TeamsDataSource {
      * Sends a team invitation to a user identified by their university id.
      * @param senderId - The id of the sending (inviting) user.
      * @param receiverUniId - The university id of the invited user.
+     * @param teamId - The id of the team to invite the user to.
      */
-    abstract sendInvitation(senderId: string, receiverUniId: string): Promise<void>;
+    abstract sendInvitation(senderId: string, receiverUniId: string, teamId: number): Promise<void>;
 
     /**
      * Accepts an invitation, joining the sender's team.

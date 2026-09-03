@@ -4,6 +4,24 @@ import type { UserRole } from '../App';
 import { authRepository } from '../features/auth/repositories/auth_repository';
 import { teamsRepository } from '../features/teams/repositories/teams_repository';
 import { reservationsRepository } from '../features/reservations/repositories/reservations_repository';
+import { supabase } from '../core/supabaseClient';
+
+/** Batch-fetches full_name for a list of teacher UUIDs. */
+async function fetchTeacherNames(instructorIds: string[]): Promise<Map<string, string>> {
+    const validIds = instructorIds.filter(id => id);
+    if (validIds.length === 0) return new Map();
+    const uniqueIds = [...new Set(validIds)];
+    const { data } = await supabase
+        .from('users')
+        .select('id, full_name')
+        .in('id', uniqueIds);
+    const map = new Map<string, string>();
+    (data ?? []).forEach((u: { id: string; full_name: string }) =>
+        map.set(u.id, u.full_name || u.id)
+    );
+    return map;
+}
+
 import MyTeamPanel from '../components/project/MyTeamPanel';
 import AvailableTeamsGrid from '../components/project/AvailableTeamsGrid';
 import InvitationsFeed from '../components/project/InvitationsFeed';
@@ -96,6 +114,9 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
     const isSupervisor = userRole === 'supervisor';
 
     const [loading, setLoading] = useState(true);
+    const [reloadTrigger, setReloadTrigger] = useState(0);
+    /** Call this after any action that changes server state to get fresh data. */
+    const triggerReload = () => { setLoading(true); setReloadTrigger(t => t + 1); };
     const [currentUserId, setCurrentUserId] = useState<string>('');
     const [currentUserName, setCurrentUserName] = useState<string>('');
     const [currentUserUniversityId, setCurrentUserUniversityId] = useState<string>('');
@@ -144,6 +165,10 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
                         teamsRepository.getSupervisedTeams(session.id),
                         teamsRepository.getUnsupervisedTeams(),
                     ]);
+                    
+                    const allSupervisorIds = supervisedDtos.map(t => t.supervisor_id as string);
+                    const teacherNames = await fetchTeacherNames(allSupervisorIds);
+
                     const enriched: SupervisedTeamData[] = await Promise.all(
                         supervisedDtos.map(async (teamDto) => {
                             const [memberDtos, teamReservations] = await Promise.all([
@@ -151,7 +176,7 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
                                 fetchTeamReservations(teamDto.id),
                             ]);
                             return {
-                                team: teamDtoToTeam(teamDto),
+                                team: teamDtoToTeam(teamDto, teacherNames.get(teamDto.supervisor_id as string)),
                                 members: memberDtos.map(memberDtoToMember),
                                 reservations: teamReservations,
                             };
@@ -165,12 +190,11 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
                     try {
                         teamDto = await teamsRepository.getUserTeam(session.id);
                     } catch {
-                        // Student has no team yet — .single() throws when 0 rows are found.
-                        // Treat this as the normal "no team" state, not a fatal error.
                         teamDto = null;
                     }
                     if (teamDto) {
-                        const team = teamDtoToTeam(teamDto);
+                        const teacherNames = await fetchTeacherNames([teamDto.supervisor_id as string]);
+                        const team = teamDtoToTeam(teamDto, teacherNames.get(teamDto.supervisor_id as string));
                         setMyTeamData(team);
                         setHasTeam(true);
                         const [memberDtos, teamReservations] = await Promise.all([
@@ -198,34 +222,21 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
                         setAvailableTeams(teamDtos.map(dto => teamDtoToTeam(dto)));
                     }
                 }
-            } catch {
+            } catch (error) {
+                console.error('Error loading project dashboard data:', error);
                 showNotice({ type: 'error', message: 'Failed to load data. Check your connection.' });
             } finally {
                 setLoading(false);
             }
         }
         load();
-    }, [isSupervisor]);
+    }, [isSupervisor, reloadTrigger]);
 
     const handleAcceptInvite = async (senderUserId: string) => {
         try {
             await teamsRepository.acceptInvitation(senderUserId, currentUserId);
-            setInvitations(prev => prev.filter(i => i.sender_user_id !== senderUserId));
-            if (!isSupervisor) {
-                const teamDto = await teamsRepository.getUserTeam(currentUserId);
-                if (teamDto) {
-                    const team = teamDtoToTeam(teamDto);
-                    setMyTeamData(team);
-                    setHasTeam(true);
-                    const [memberDtos, teamReservations] = await Promise.all([
-                        teamsRepository.getTeamMembers(team.team_id),
-                        fetchTeamReservations(team.team_id),
-                    ]);
-                    setTeamMembers(memberDtos.map(memberDtoToMember));
-                    setReservations(teamReservations);
-                }
-            }
             showNotice({ type: 'success', message: 'Invitation accepted.' });
+            triggerReload();
         } catch {
             showNotice({ type: 'error', message: 'Failed to accept invitation.' });
         }
@@ -245,11 +256,8 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
         if (!myTeamData) return;
         try {
             await teamsRepository.acceptJoinRequest(applicantUserId, myTeamData.team_id);
-            setJoinRequests(prev => prev.filter(r => r.sender_user_id !== applicantUserId));
-            // Refresh members so the new member appears in the panel immediately.
-            const memberDtos = await teamsRepository.getTeamMembers(myTeamData.team_id);
-            setTeamMembers(memberDtos.map(memberDtoToMember));
             showNotice({ type: 'success', message: 'Join request accepted.' });
+            triggerReload();
         } catch {
             showNotice({ type: 'error', message: 'Failed to accept join request.' });
         }
@@ -292,7 +300,14 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
     };
 
     const handleLeaveTeam = async () => {
-        if (!myTeamData || !window.confirm('Are you sure you want to leave this team?')) return;
+        if (!myTeamData) return;
+        const isLeader = teamMembers.some(m => m.user_id === currentUserId && m.team_role === 'Team Leader');
+        const otherMembers = teamMembers.filter(m => m.user_id !== currentUserId);
+        if (isLeader && otherMembers.length > 0) {
+            showNotice({ type: 'error', message: 'You must promote another member to Team Leader before leaving.' });
+            return;
+        }
+        if (!window.confirm('Are you sure you want to leave this team?')) return;
         try {
             await teamsRepository.leaveTeam(currentUserId, myTeamData.team_id);
             setHasTeam(false);
@@ -313,35 +328,19 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
         if (!activeTeam || !window.confirm(`Stop supervising "${activeTeam.project_title}"?`)) return;
         try {
             await teamsRepository.stopSupervising(selectedSupTeamId);
-            const remaining = supervisedTeams.filter(t => t.team.team_id !== selectedSupTeamId);
-            const freed: Team = { ...activeTeam, supervisor_id: '', supervisor_name: undefined };
-            setSupervisedTeams(remaining);
-            setUnsupervisedTeams(prev => [...prev, freed]);
-            setSelectedSupTeamId(remaining.length > 0 ? remaining[0].team.team_id : null);
             showNotice({ type: 'info', message: `Stopped supervising "${activeTeam.project_title}".` });
+            triggerReload();
         } catch {
             showNotice({ type: 'error', message: 'Failed to stop supervising.' });
         }
     };
 
     const handleSuperviseTeam = async (teamId: number) => {
+        const team = unsupervisedTeams.find(t => t.team_id === teamId);
         try {
             await teamsRepository.setTeamSupervisor(teamId, currentUserId);
-            const team = unsupervisedTeams.find(t => t.team_id === teamId);
-            if (!team) return;
-            const [memberDtos, teamReservations] = await Promise.all([
-                teamsRepository.getTeamMembers(teamId),
-                fetchTeamReservations(teamId),
-            ]);
-            const newEntry: SupervisedTeamData = {
-                team: { ...team, supervisor_id: currentUserId, supervisor_name: currentUserName },
-                members: memberDtos.map(memberDtoToMember),
-                reservations: teamReservations,
-            };
-            setSupervisedTeams(prev => [...prev, newEntry]);
-            setUnsupervisedTeams(prev => prev.filter(t => t.team_id !== teamId));
-            setSelectedSupTeamId(teamId);
-            showNotice({ type: 'success', message: `Now supervising "${team.project_title}".` });
+            showNotice({ type: 'success', message: `Now supervising "${team?.project_title}".` });
+            triggerReload();
         } catch {
             showNotice({ type: 'error', message: 'Failed to take supervision.' });
         }
@@ -398,13 +397,15 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
             setActiveMembers(prev => prev.map(m => m.user_id === userId ? { ...m, team_role: newRole } : m));
             setMemberToManage(null);
             showNotice({ type: 'success', message: 'Member role updated.' });
-        } catch {
+        } catch (error) {
+            console.error('[updateMemberRole] Failed to update role:', error);
             showNotice({ type: 'error', message: 'Failed to update role.' });
         }
     };
 
     const handlePromoteToLeader = async (userId: string) => {
         const activeTeam = getActiveTeam();
+        console.log('Promoting to leader:', userId, 'in team:', activeTeam);
         if (!activeTeam) return;
         try {
             await teamsRepository.promoteToLeader(activeTeam.team_id, userId);
@@ -415,30 +416,59 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
             }));
             setMemberToManage(null);
             showNotice({ type: 'success', message: 'Team leader changed.' });
-        } catch {
+        } catch (error) {
+            console.error('[promoteToLeader] Failed to promote member:', error);
             showNotice({ type: 'error', message: 'Failed to promote member.' });
         }
     };
 
     const handleKickMember = async (userId: string) => {
         const activeTeam = getActiveTeam();
-        if (!activeTeam || !window.confirm('Remove this member from the team?')) return;
+        if (!activeTeam) return;
+        const targetMember = activeMembers.find(m => m.user_id === userId);
+        if (targetMember?.team_role === 'Team Leader') {
+            showNotice({ type: 'error', message: 'Cannot remove the Team Leader. Promote someone else first.' });
+            return;
+        }
+        if (!window.confirm('Remove this member from the team?')) return;
         try {
             await teamsRepository.kickMember(activeTeam.team_id, userId);
             setActiveMembers(prev => prev.filter(m => m.user_id !== userId));
             setMemberToManage(null);
             showNotice({ type: 'success', message: 'Member removed.' });
-        } catch {
+        } catch (error) {
+            console.error('[kickMember] Failed to remove member:', error);
             showNotice({ type: 'error', message: 'Failed to remove member.' });
         }
     };
 
     const handleInviteMember = async (receiverUniId: string) => {
+        const activeTeam = getActiveTeam();
+        if (!activeTeam) return;
         try {
-            await teamsRepository.sendInvitation(currentUserId, receiverUniId);
+            // Resolve the university ID to a UUID using the SECURITY DEFINER RPC
+            const { data: targetUuid } = await supabase.rpc('get_user_id', {
+                p_user_university_id: Number(receiverUniId),
+            });
+            if (targetUuid) {
+                // The "Allow Reading Teachers" RLS policy lets us read teacher rows.
+                // If this query returns a row, the target is a teacher — block the invite.
+                const { data: teacherRow } = await supabase
+                    .from('users')
+                    .select('role')
+                    .eq('id', targetUuid)
+                    .eq('role', 'teacher')
+                    .maybeSingle();
+                if (teacherRow) {
+                    showNotice({ type: 'error', message: 'Cannot invite a supervisor as a team member.' });
+                    return;
+                }
+            }
+            await teamsRepository.sendInvitation(currentUserId, receiverUniId, activeTeam.team_id);
             setShowInviteModal(false);
             showNotice({ type: 'success', message: 'Invitation sent.' });
-        } catch {
+        } catch (error) {
+            console.error('[sendInvitation] Failed to send invitation:', error);
             showNotice({ type: 'error', message: 'Student not found or invite failed.' });
         }
     };
@@ -459,7 +489,8 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
             }
             setShowDocModal(false);
             showNotice({ type: 'success', message: 'Document uploaded successfully.' });
-        } catch {
+        } catch (error) {
+            console.error('[uploadTeamDocument] Failed to upload document:', error);
             showNotice({ type: 'error', message: 'Failed to upload document.' });
         }
     };

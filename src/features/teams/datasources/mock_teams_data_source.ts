@@ -226,7 +226,7 @@ export class MockTeamsDataSource extends TeamsDataSource {
             .map((i) => InvitationDto.fromEntity(i));
     }
 
-    async sendInvitation(senderId: string, receiverUniId: string): Promise<void> {
+    async sendInvitation(senderId: string, receiverUniId: string, teamId: number): Promise<void> {
         const autoJoin = receiverUniId.endsWith(AUTO_JOIN_SUFFIX);
         const actualUniId = autoJoin ? receiverUniId.slice(0, -AUTO_JOIN_SUFFIX.length) : receiverUniId;
 
