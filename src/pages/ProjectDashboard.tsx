@@ -440,6 +440,24 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
 
     const handleInviteMember = async (receiverUniId: string) => {
         try {
+            // Resolve the university ID to a UUID using the SECURITY DEFINER RPC
+            const { data: targetUuid } = await supabase.rpc('get_user_id', {
+                p_user_university_id: Number(receiverUniId),
+            });
+            if (targetUuid) {
+                // The "Allow Reading Teachers" RLS policy lets us read teacher rows.
+                // If this query returns a row, the target is a teacher — block the invite.
+                const { data: teacherRow } = await supabase
+                    .from('users')
+                    .select('role')
+                    .eq('id', targetUuid)
+                    .eq('role', 'teacher')
+                    .maybeSingle();
+                if (teacherRow) {
+                    showNotice({ type: 'error', message: 'Cannot invite a supervisor as a team member.' });
+                    return;
+                }
+            }
             await teamsRepository.sendInvitation(currentUserId, receiverUniId);
             setShowInviteModal(false);
             showNotice({ type: 'success', message: 'Invitation sent.' });

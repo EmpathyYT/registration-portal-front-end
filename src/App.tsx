@@ -18,6 +18,15 @@ function App() {
   const [userRole, setUserRole] = useState<UserRole>('student');
   const [isDark, toggleDark] = useDarkMode();
 
+  // Persist the active page so a browser refresh keeps the student on the same page.
+  // Guard: only save AFTER init is done — otherwise the default 'registration' value
+  // would overwrite the saved page before the session restore even reads it.
+  useEffect(() => {
+    if (!initializing) {
+      sessionStorage.setItem('activePage', activePage);
+    }
+  }, [activePage, initializing]);
+
   // On mount, restore session from Supabase's persisted token so a page
   // refresh doesn't force the user to log in again.
   useEffect(() => {
@@ -25,9 +34,13 @@ function App() {
       .then(session => {
         if (session) {
           const role: UserRole = session.role === 'teacher' ? 'supervisor' : 'student';
+          // Supervisors always land on project. Students restore their last page.
+          const savedPage = sessionStorage.getItem('activePage') as ActivePage | null;
+          const restoredPage: ActivePage =
+            role === 'supervisor' ? 'project' : (savedPage ?? 'registration');
           setIsAuthenticated(true);
           setUserRole(role);
-          setActivePage(role === 'supervisor' ? 'project' : 'registration');
+          setActivePage(restoredPage);
         }
       })
       .catch(() => { /* no session — stay on login */ })
@@ -44,6 +57,7 @@ function App() {
 
   const handleLogout = async () => {
     try { await authRepository.logout(); } catch { /* ignore */ }
+    sessionStorage.removeItem('activePage'); // clear saved page on logout
     setIsAuthenticated(false);
     setActivePage('registration');
     setUserRole('student');
