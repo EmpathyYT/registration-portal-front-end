@@ -204,7 +204,6 @@ export class SupabaseTeamsDataSource extends TeamsDataSource {
         const { data: receiverData, error: receiverFetchError } = await supabase.rpc('get_user_id', {
             p_user_university_id: _receiverUniId,
         });
-
         if (receiverFetchError) {
             throw new Error(`Failed to fetch receiver user ID: ${receiverFetchError.message}`);
         }
@@ -212,7 +211,7 @@ export class SupabaseTeamsDataSource extends TeamsDataSource {
             .from('invitations')
             .insert({
                 sender_user_id: _senderId,
-                receiver_user_id: receiverData.id,
+                receiver_user_id: receiverData,
                 invitation_type: 'invite',
             });
 

@@ -133,7 +133,7 @@ export const MyTeamPanel: React.FC<MyTeamPanelProps> = ({
                                     >
                                         <option value="">Select Professor...</option>
                                         {supervisors.map((supervisor) => (
-                                            <option key={supervisor.id} value={supervisor.id}>
+                                            <option key={supervisor.university_id} value={supervisor.university_id}>
                                                 {supervisor.full_name}
                                             </option>
                                         ))}

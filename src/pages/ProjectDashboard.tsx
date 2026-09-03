@@ -165,8 +165,6 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
                     try {
                         teamDto = await teamsRepository.getUserTeam(session.id);
                     } catch {
-                        // Student has no team yet — .single() throws when 0 rows are found.
-                        // Treat this as the normal "no team" state, not a fatal error.
                         teamDto = null;
                     }
                     if (teamDto) {
@@ -198,7 +196,8 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
                         setAvailableTeams(teamDtos.map(dto => teamDtoToTeam(dto)));
                     }
                 }
-            } catch {
+            } catch (error) {
+                console.error('Error loading project dashboard data:', error);
                 showNotice({ type: 'error', message: 'Failed to load data. Check your connection.' });
             } finally {
                 setLoading(false);
