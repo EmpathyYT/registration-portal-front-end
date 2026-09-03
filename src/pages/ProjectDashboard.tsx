@@ -405,6 +405,7 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
 
     const handlePromoteToLeader = async (userId: string) => {
         const activeTeam = getActiveTeam();
+        console.log('Promoting to leader:', userId, 'in team:', activeTeam);
         if (!activeTeam) return;
         try {
             await teamsRepository.promoteToLeader(activeTeam.team_id, userId);
@@ -442,6 +443,8 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
     };
 
     const handleInviteMember = async (receiverUniId: string) => {
+        const activeTeam = getActiveTeam();
+        if (!activeTeam) return;
         try {
             // Resolve the university ID to a UUID using the SECURITY DEFINER RPC
             const { data: targetUuid } = await supabase.rpc('get_user_id', {
@@ -461,7 +464,7 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
                     return;
                 }
             }
-            await teamsRepository.sendInvitation(currentUserId, receiverUniId);
+            await teamsRepository.sendInvitation(currentUserId, receiverUniId, activeTeam.team_id);
             setShowInviteModal(false);
             showNotice({ type: 'success', message: 'Invitation sent.' });
         } catch (error) {

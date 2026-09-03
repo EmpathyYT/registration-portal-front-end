@@ -80,7 +80,7 @@ export const MyTeamPanel: React.FC<MyTeamPanelProps> = ({
 
     const handleSendSupervisorInvite = async () => {
         setInviteState('sending');
-        await teamsRepository.sendInvitation(currentUserId, selectedSupervisor);
+        await teamsRepository.sendInvitation(currentUserId, selectedSupervisor, team.team_id);
         setInviteState('success');
         setTimeout(() => {
             setIsInvitingSupervisor(false);

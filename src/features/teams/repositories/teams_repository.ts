@@ -59,8 +59,8 @@ export class TeamsRepository {
         return this.dataSource.getPendingInvitations(userId);
     }
 
-    sendInvitation(senderId: string, receiverUniId: string): Promise<void> {
-        return this.dataSource.sendInvitation(senderId, receiverUniId);
+    sendInvitation(senderId: string, receiverUniId: string, teamId: number): Promise<void> {
+        return this.dataSource.sendInvitation(senderId, receiverUniId, teamId);
     }
 
     acceptInvitation(senderUserId: string, receiverUserId: string): Promise<void> {
