@@ -203,11 +203,33 @@ export class SupabaseTeamsDataSource extends TeamsDataSource {
         return data.map((invitation) => new InvitationDto(invitation));
     }
 
-    async sendInvitation(_senderId: string, _receiverUniId: string): Promise<void> {
+    async sendInvitation(_senderId: string, _receiverUniId: string, _teamId: number): Promise<void> {
         // get_user_id expects a bigint — pass a number, not a string
         const { data: receiverData, error: receiverFetchError } = await supabase.rpc('get_user_id', {
             p_user_university_id: Number(_receiverUniId),
         });
+
+        const { data: isTeacher, error: roleFetchError } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', _senderId)
+            .single();
+
+        if (roleFetchError) {
+            throw new Error(`Failed to fetch sender role: ${roleFetchError.message}`);
+        }
+
+        if (isTeacher?.role === 'teacher') {
+            const { error: sendInvitationError } = await supabase.rpc('send_invitation_as_leader', {
+                p_receiver_user_id: receiverData,
+                p_team_id: _teamId,
+            });
+            if (sendInvitationError) {
+                throw new Error(`Failed to send invitation as leader: ${sendInvitationError.message}`);
+            }
+            return;
+        }
+
         if (receiverFetchError) {
             throw new Error(`Failed to fetch receiver user ID: ${receiverFetchError.message}`);
         }
