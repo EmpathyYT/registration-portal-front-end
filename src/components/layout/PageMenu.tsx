@@ -7,11 +7,12 @@ type PageMenuProps = {
     onToggleDark: () => void;
     switchLabel?: string;
     onSwitchPage?: () => void;
+    switchDisabled?: boolean;
     onLogout?: () => void;
     userRole?: string;
 };
 
-export default function PageMenu({ switchLabel, onSwitchPage, onLogout, isDark, onToggleDark, userRole }: PageMenuProps) {
+export default function PageMenu({ switchLabel, onSwitchPage, switchDisabled, onLogout, isDark, onToggleDark, userRole }: PageMenuProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [isVisible, setIsVisible] = useState(true);
     const [isChatOpen, setIsChatOpen] = useState(false);
@@ -105,7 +106,14 @@ export default function PageMenu({ switchLabel, onSwitchPage, onLogout, isDark, 
                                 {onSwitchPage && switchLabel && (
                                     <>
                                         <div className={styles.divider} />
-                                        <button type="button" className={styles.switchBtn} onClick={handleSwitch}>
+                                        <button
+                                            type="button"
+                                            className={styles.switchBtn}
+                                            onClick={handleSwitch}
+                                            disabled={switchDisabled}
+                                            title={switchDisabled ? 'Register for Graduation Project (Course ID 2) to unlock this page' : undefined}
+                                            style={switchDisabled ? { opacity: 0.45, cursor: 'not-allowed', outline: 'none', border: 'none' } : undefined}
+                                        >
                                             <svg className={styles.switchIcon} width="15" height="15" fill="currentColor" viewBox="0 0 16 16">
                                                 <path fillRule="evenodd" d="M1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8zm15 0A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-4.5-.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5z"/>
                                             </svg>

@@ -7,6 +7,7 @@ import PageMenu from '../components/layout/PageMenu';
 import FloatingNotice, { type NoticeState } from '../components/layout/FloatingNotice';
 import { authRepository } from '../features/auth/repositories/auth_repository';
 import { coursesRepository } from '../features/courses/repositories/courses_repository';
+import { teamsRepository } from '../features/teams/repositories/teams_repository';
 import { supabase } from '../core/supabaseClient';
 import type { SessionDto } from '../features/courses/dtos/session_dto';
 
@@ -57,6 +58,8 @@ export default function RegistrationA({ onSwitchPage, onLogout, isDark, onToggle
 
     const [availableCourses, setAvailableCourses] = useState<Course[]>([]);
     const [registeredCourses, setRegisteredCourses] = useState<EnrolledCourse[]>([]);
+    // Track what's actually committed in the DB so we know what to delete on commit
+    const [committedSectionIds, setCommittedSectionIds] = useState<Set<number>>(new Set());
     const [sections, setSections] = useState<CourseSection[]>([]);
     const [selectedCourseId, setSelectedCourseId] = useState('');
     const [commitState, setCommitState] = useState<CommitState>('clean');
@@ -142,6 +145,8 @@ export default function RegistrationA({ onSwitchPage, onLogout, isDark, onToggle
                         })
                         .filter((e): e is EnrolledCourse => e !== null);
                     setRegisteredCourses(enrolled);
+                    // Snapshot what's in the DB so commit can diff additions vs deletions
+                    setCommittedSectionIds(new Set(enrollmentDtos.map(e => e.semester_course_id)));
                 }
             } catch {
                 setNotice({ type: 'error', message: 'Failed to load data.' });
@@ -230,24 +235,54 @@ export default function RegistrationA({ onSwitchPage, onLogout, isDark, onToggle
         setNotice({ type: 'success', message: `${newCourse.name} added to draft.` });
     };
 
-    const handleDropCourse = async (semesterCourseId: number) => {
+    const GRAD_PROJECT_COURSE_ID = '2';
+
+    /** Performs the actual local removal (no DB call — committed on "Commit Changes"). */
+    const doLocalDrop = (semesterCourseId: number) => {
         const dropped = registeredCourses.find(c => c.semester_course_id === semesterCourseId);
-        try {
-            await coursesRepository.dropSection(currentUserId, semesterCourseId);
-            setRegisteredCourses(prev => prev.filter(c => c.semester_course_id !== semesterCourseId));
-            setCommitState('dirty');
-            if (dropped) setNotice({ type: 'info', message: `${dropped.name} removed.` });
-        } catch {
-            setNotice({ type: 'error', message: 'Failed to drop course.' });
+        setRegisteredCourses(prev => prev.filter(c => c.semester_course_id !== semesterCourseId));
+        setCommitState('dirty');
+        if (dropped) setNotice({ type: 'info', message: `${dropped.name} removed from draft.` });
+    };
+
+    const handleDropCourse = async (semesterCourseId: number) => {
+        const course = registeredCourses.find(c => c.semester_course_id === semesterCourseId);
+        // Special handling for Graduation Project — block if student is in a team
+        if (course?.course_id === GRAD_PROJECT_COURSE_ID) {
+            try {
+                const team = await teamsRepository.getUserTeam(currentUserId);
+                if (team) {
+                    setNotice({ type: 'error', message: 'You must leave your team on the Project Page before dropping Graduation Project.' });
+                    return;
+                }
+            } catch {
+                // getUserTeam throws if no team — treat as no team, allow drop
+            }
         }
+        doLocalDrop(semesterCourseId);
     };
 
     const handleCommitSchedule = async () => {
         setCommitState('committing');
         setNotice({ type: 'info', message: 'Saving schedule...' });
         try {
-            const draftIds = registeredCourses.map(c => c.semester_course_id);
-            await coursesRepository.commitSchedule(currentUserId, draftIds);
+            const currentDraftIds = registeredCourses.map(c => c.semester_course_id);
+            // Courses to delete: were committed but are no longer in the draft
+            const toDeleteIds = [...committedSectionIds].filter(id => !currentDraftIds.includes(id));
+            // Courses to add: in the draft but not yet committed
+            const toAddIds = currentDraftIds.filter(id => !committedSectionIds.has(id));
+
+            // Delete dropped courses from DB
+            for (const id of toDeleteIds) {
+                await coursesRepository.dropSection(currentUserId, id);
+            }
+            // Upsert newly added courses
+            if (toAddIds.length > 0) {
+                await coursesRepository.commitSchedule(currentUserId, toAddIds);
+            }
+
+            // Update the committed snapshot to reflect the new DB state
+            setCommittedSectionIds(new Set(currentDraftIds));
             setCommitState('success');
             setNotice({ type: 'success', message: 'Schedule saved successfully.' });
             setTimeout(() => setCommitState('clean'), 2000);
@@ -256,6 +291,16 @@ export default function RegistrationA({ onSwitchPage, onLogout, isDark, onToggle
             setCommitState('dirty');
             setNotice({ type: 'error', message: 'Failed to save schedule.' });
         }
+    };
+
+    /** Guard: students must be enrolled in Graduation Project (course ID 2) to access the Project Page. */
+    const isEnrolledInGradProject = registeredCourses.some(c => c.course_id === GRAD_PROJECT_COURSE_ID);
+    const handleSwitchPage = () => {
+        if (!isEnrolledInGradProject) {
+            setNotice({ type: 'error', message: 'You must register for "Graduation Project" (Course ID 2) to access the Project Page.' });
+            return;
+        }
+        onSwitchPage();
     };
 
     const selectedCourse = availableCourses.find(c => c.course_id === selectedCourseId);
@@ -272,8 +317,17 @@ export default function RegistrationA({ onSwitchPage, onLogout, isDark, onToggle
 
     return (
         <div className="min-vh-100 pb-5 page-body">
-            <PageMenu switchLabel="Project Page" onSwitchPage={onSwitchPage} onLogout={onLogout} isDark={isDark} onToggleDark={onToggleDark} userRole="student" />
+            <PageMenu
+                switchLabel="Project Page"
+                onSwitchPage={handleSwitchPage}
+                switchDisabled={!isEnrolledInGradProject}
+                onLogout={onLogout}
+                isDark={isDark}
+                onToggleDark={onToggleDark}
+                userRole="student"
+            />
             <FloatingNotice notice={notice} />
+
             <div className="container container-main">
                 <div className="text-center mb-5 fade-up">
                     <h1 className="fw-bolder mb-1 page-title" style={{ letterSpacing: '-0.5px' }}>Course Registration Portal</h1>
