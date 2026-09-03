@@ -6,10 +6,13 @@ import { teamsRepository } from '../../features/teams/repositories/teams_reposit
 import type { UserEntity } from '../../features/auth/entities/user_entity';
 import { supabase } from '../../core/supabaseClient';
 
-/** Converts a raw storage path (e.g. "14/document.pdf") to a full public URL. */
-function getDocUrl(path: string): string {
-    const { data } = supabase.storage.from('team-documents').getPublicUrl(path);
-    return data.publicUrl;
+/** Generates a short-lived signed URL (1 hour) for a private storage path. */
+async function getDocUrl(path: string): Promise<string> {
+    const { data, error } = await supabase.storage
+        .from('team-documents')
+        .createSignedUrl(path, 3600); // 1-hour expiry
+    if (error || !data) return '#';
+    return data.signedUrl;
 }
 
 interface MyTeamPanelProps {
@@ -47,6 +50,13 @@ export const MyTeamPanel: React.FC<MyTeamPanelProps> = ({
     const [isFetchingSupervisors, setIsFetchingSupervisors] = useState(false);
     const [supervisors, setSupervisors] = useState<UserEntity[]>([]);
     const [inviteState, setInviteState] = useState<'idle' | 'sending' | 'success'>('idle');
+    const [docUrl, setDocUrl] = useState<string | null>(null);
+
+    // Resolve the signed URL whenever the stored path changes
+    useEffect(() => {
+        if (!team.introduction_link) { setDocUrl(null); return; }
+        getDocUrl(team.introduction_link).then(setDocUrl);
+    }, [team.introduction_link]);
 
     const fetchSupervisors = async () => {
         setIsFetchingSupervisors(true);
@@ -220,8 +230,8 @@ export const MyTeamPanel: React.FC<MyTeamPanelProps> = ({
                         </span>
                     </div>
                     <div className={styles.docActions}>
-                        {team.introduction_link && (
-                            <a href={getDocUrl(team.introduction_link)} target="_blank" rel="noreferrer" className={styles.openLinkBtn}>
+                        {team.introduction_link && docUrl && (
+                            <a href={docUrl} target="_blank" rel="noreferrer" className={styles.openLinkBtn}>
                                 Open Link
                             </a>
                         )}
