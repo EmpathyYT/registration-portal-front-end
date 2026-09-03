@@ -81,7 +81,7 @@ export class SupabaseTeamsDataSource extends TeamsDataSource {
             .from('team_members')
             .select('team_id')
             .eq('user_id', _userId)
-            .single();
+            .maybeSingle();
 
         if (error) {
             throw new Error(`Failed to fetch user's team: ${error.message}`);
@@ -167,10 +167,13 @@ export class SupabaseTeamsDataSource extends TeamsDataSource {
     }
 
     async uploadTeamDocument(_teamId: number, _document: File): Promise<void> {
+        // The storage RLS policy requires the path to be exactly: <teamId>/document.pdf
+        const storagePath = `${_teamId}/document.pdf`;
         const { data, error } = await supabase.storage
             .from('team-documents')
-            .upload(`team_${_teamId}/${_document.name}`, _document, {
+            .upload(storagePath, _document, {
                 upsert: true,
+                contentType: 'application/pdf',
             });
 
         if (error) {
@@ -201,11 +204,15 @@ export class SupabaseTeamsDataSource extends TeamsDataSource {
     }
 
     async sendInvitation(_senderId: string, _receiverUniId: string): Promise<void> {
+        // get_user_id expects a bigint — pass a number, not a string
         const { data: receiverData, error: receiverFetchError } = await supabase.rpc('get_user_id', {
-            p_user_university_id: _receiverUniId,
+            p_user_university_id: Number(_receiverUniId),
         });
         if (receiverFetchError) {
             throw new Error(`Failed to fetch receiver user ID: ${receiverFetchError.message}`);
+        }
+        if (!receiverData) {
+            throw new Error('Failed to send invitation: Student with that ID not found.');
         }
         const { error: receiverError } = await supabase
             .from('invitations')

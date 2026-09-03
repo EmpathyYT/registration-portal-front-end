@@ -231,7 +231,8 @@ export default function RegistrationA({ onSwitchPage, onLogout, isDark, onToggle
             setCommitState('success');
             setNotice({ type: 'success', message: 'Schedule saved successfully.' });
             setTimeout(() => setCommitState('clean'), 2000);
-        } catch {
+        } catch (error) {
+            console.error('[commitSchedule] Failed to save schedule:', error);
             setCommitState('dirty');
             setNotice({ type: 'error', message: 'Failed to save schedule.' });
         }

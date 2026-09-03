@@ -64,11 +64,12 @@ export class SupabaseCoursesDataSource extends CoursesDataSource {
     }
 
     async commitSchedule(_userId: string, _semesterCourseIds: number[]): Promise<void> {
-        const { error } = await supabase.from('enrollments').insert(
+        const { error } = await supabase.from('enrollments').upsert(
             _semesterCourseIds.map(semesterCourseId => ({
                 user_id: _userId,
                 semester_course_id: semesterCourseId,
-            }))
+            })),
+            { onConflict: 'user_id,semester_course_id', ignoreDuplicates: true }
         );
 
         if (error) {

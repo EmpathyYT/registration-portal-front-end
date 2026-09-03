@@ -4,6 +4,13 @@ import ReservationsFeed from './ReservationsFeed';
 import { styles } from '../../styles/components/project/MyTeamPanelStyles';
 import { teamsRepository } from '../../features/teams/repositories/teams_repository';
 import type { UserEntity } from '../../features/auth/entities/user_entity';
+import { supabase } from '../../core/supabaseClient';
+
+/** Converts a raw storage path (e.g. "14/document.pdf") to a full public URL. */
+function getDocUrl(path: string): string {
+    const { data } = supabase.storage.from('team-documents').getPublicUrl(path);
+    return data.publicUrl;
+}
 
 interface MyTeamPanelProps {
     team: Team;
@@ -214,7 +221,7 @@ export const MyTeamPanel: React.FC<MyTeamPanelProps> = ({
                     </div>
                     <div className={styles.docActions}>
                         {team.introduction_link && (
-                            <a href={team.introduction_link} target="_blank" rel="noreferrer" className={styles.openLinkBtn}>
+                            <a href={getDocUrl(team.introduction_link)} target="_blank" rel="noreferrer" className={styles.openLinkBtn}>
                                 Open Link
                             </a>
                         )}

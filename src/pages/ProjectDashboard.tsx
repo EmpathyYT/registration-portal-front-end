@@ -397,7 +397,8 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
             setActiveMembers(prev => prev.map(m => m.user_id === userId ? { ...m, team_role: newRole } : m));
             setMemberToManage(null);
             showNotice({ type: 'success', message: 'Member role updated.' });
-        } catch {
+        } catch (error) {
+            console.error('[updateMemberRole] Failed to update role:', error);
             showNotice({ type: 'error', message: 'Failed to update role.' });
         }
     };
@@ -414,7 +415,8 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
             }));
             setMemberToManage(null);
             showNotice({ type: 'success', message: 'Team leader changed.' });
-        } catch {
+        } catch (error) {
+            console.error('[promoteToLeader] Failed to promote member:', error);
             showNotice({ type: 'error', message: 'Failed to promote member.' });
         }
     };
@@ -433,7 +435,8 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
             setActiveMembers(prev => prev.filter(m => m.user_id !== userId));
             setMemberToManage(null);
             showNotice({ type: 'success', message: 'Member removed.' });
-        } catch {
+        } catch (error) {
+            console.error('[kickMember] Failed to remove member:', error);
             showNotice({ type: 'error', message: 'Failed to remove member.' });
         }
     };
@@ -461,7 +464,8 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
             await teamsRepository.sendInvitation(currentUserId, receiverUniId);
             setShowInviteModal(false);
             showNotice({ type: 'success', message: 'Invitation sent.' });
-        } catch {
+        } catch (error) {
+            console.error('[sendInvitation] Failed to send invitation:', error);
             showNotice({ type: 'error', message: 'Student not found or invite failed.' });
         }
     };
@@ -482,7 +486,8 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
             }
             setShowDocModal(false);
             showNotice({ type: 'success', message: 'Document uploaded successfully.' });
-        } catch {
+        } catch (error) {
+            console.error('[uploadTeamDocument] Failed to upload document:', error);
             showNotice({ type: 'error', message: 'Failed to upload document.' });
         }
     };
