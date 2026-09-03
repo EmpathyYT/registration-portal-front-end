@@ -73,15 +73,25 @@ export const AvailableTeamsGrid: React.FC<AvailableTeamsGridProps> = ({
                                         <div className={styles.cardBottom}>
                                             <div className={styles.capacityRow}>
                                                 <span>Team Size</span>
-                                                <span>{team.min_users}–{team.max_users} Members</span>
+                                                <span>{team.member_count ?? 0} / {team.max_users} Members</span>
+                                            </div>
+                                            <div className={styles.progress}>
+                                                <div
+                                                    className={`${styles.progressBar}${(team.member_count ?? 0) >= team.max_users ? ' bg-danger' : ''}`}
+                                                    role="progressbar"
+                                                    style={{ width: `${Math.min(((team.member_count ?? 0) / team.max_users) * 100, 100)}%` }}
+                                                    aria-valuenow={team.member_count ?? 0}
+                                                    aria-valuemin={0}
+                                                    aria-valuemax={team.max_users}
+                                                />
                                             </div>
                                             <button
-                                                className={styles.actionBtn(hasActed)}
+                                                className={styles.actionBtn(hasActed || (team.member_count ?? 0) >= team.max_users)}
                                                 onClick={() => handleRequest(team.team_id)}
-                                                disabled={hasActed || isActing}
+                                                disabled={hasActed || isActing || (team.member_count ?? 0) >= team.max_users}
                                             >
                                                 {isActing && <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>}
-                                                {hasActed ? '✓ Done' : isActing ? 'Working...' : actionLabel}
+                                                {hasActed ? '✓ Done' : (team.member_count ?? 0) >= team.max_users ? 'Full' : isActing ? 'Working...' : actionLabel}
                                             </button>
                                         </div>
                                     </div>

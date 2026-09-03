@@ -1,6 +1,6 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useDarkMode } from './hooks/useDarkMode';
 import LogIn from "./pages/LogIn.tsx";
 import RegistrationA from './pages/RegistrationA';
@@ -13,9 +13,26 @@ export type UserRole = 'student' | 'supervisor';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [initializing, setInitializing] = useState(true);
   const [activePage, setActivePage] = useState<ActivePage>('registration');
   const [userRole, setUserRole] = useState<UserRole>('student');
   const [isDark, toggleDark] = useDarkMode();
+
+  // On mount, restore session from Supabase's persisted token so a page
+  // refresh doesn't force the user to log in again.
+  useEffect(() => {
+    authRepository.getCurrentSession()
+      .then(session => {
+        if (session) {
+          const role: UserRole = session.role === 'teacher' ? 'supervisor' : 'student';
+          setIsAuthenticated(true);
+          setUserRole(role);
+          setActivePage(role === 'supervisor' ? 'project' : 'registration');
+        }
+      })
+      .catch(() => { /* no session — stay on login */ })
+      .finally(() => setInitializing(false));
+  }, []);
 
   const handleLogin = (role: UserRole) => {
     setIsAuthenticated(true);
@@ -32,6 +49,16 @@ function App() {
     setUserRole('student');
   };
 
+
+  if (initializing) {
+    return (
+      <div className="min-vh-100 d-flex align-items-center justify-content-center">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return <LogIn onLogin={handleLogin} isDark={isDark} onToggleDark={toggleDark} />;
