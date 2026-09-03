@@ -332,24 +332,32 @@ export class SupabaseTeamsDataSource extends TeamsDataSource {
     }
 
     async setTeamSupervisor(_teamId: number, _supervisorId: string): Promise<void> {
-        const { error } = await supabase
+        const { data, error } = await supabase
             .from('teams')
             .update({ supervisor_id: _supervisorId })
-            .eq('id', _teamId);
+            .eq('id', _teamId)
+            .select();
 
         if (error) {
             throw new Error(`Failed to set team supervisor: ${error.message}`);
         }
+        if (!data || data.length === 0) {
+            throw new Error('Failed to set team supervisor: Permission denied or team not found.');
+        }
     }
 
     async stopSupervising(_teamId: number): Promise<void> {
-        const { error } = await supabase
+        const { data, error } = await supabase
             .from('teams')
             .update({ supervisor_id: null })
-            .eq('id', _teamId);
+            .eq('id', _teamId)
+            .select();
 
         if (error) {
-            throw new Error(`Failed to stop supervising team: ${error.message}`);
+            throw new Error(`Failed to stop supervising: ${error.message}`);
+        }
+        if (!data || data.length === 0) {
+            throw new Error('Failed to stop supervising: Permission denied or team not found.');
         }
     }
 }

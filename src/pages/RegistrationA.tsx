@@ -7,6 +7,23 @@ import PageMenu from '../components/layout/PageMenu';
 import FloatingNotice, { type NoticeState } from '../components/layout/FloatingNotice';
 import { authRepository } from '../features/auth/repositories/auth_repository';
 import { coursesRepository } from '../features/courses/repositories/courses_repository';
+import { supabase } from '../core/supabaseClient';
+
+/** Batch-fetches full_name for a list of teacher UUIDs.
+ *  The RLS "Allow Reading Teachers" policy allows any authenticated user to read teacher rows. */
+async function fetchTeacherNames(instructorIds: string[]): Promise<Map<string, string>> {
+    if (instructorIds.length === 0) return new Map();
+    const uniqueIds = [...new Set(instructorIds)];
+    const { data } = await supabase
+        .from('users')
+        .select('id, full_name')
+        .in('id', uniqueIds);
+    const map = new Map<string, string>();
+    (data ?? []).forEach((u: { id: string; full_name: string }) =>
+        map.set(u.id, u.full_name || u.id)
+    );
+    return map;
+}
 
 type RegistrationAProps = {
     onSwitchPage: () => void;
@@ -94,6 +111,10 @@ export default function RegistrationA({ onSwitchPage, onLogout, isDark, onToggle
                         });
                     });
 
+                    // Batch-fetch teacher names — RLS allows reading users with role='teacher'
+                    const instructorIds = [...sectionLookup.values()].map(v => v.instructorId);
+                    const teacherNames = await fetchTeacherNames(instructorIds);
+
                     const enrolled: EnrolledCourse[] = enrollmentDtos
                         .map(e => {
                             const info = sectionLookup.get(e.semester_course_id);
@@ -103,7 +124,7 @@ export default function RegistrationA({ onSwitchPage, onLogout, isDark, onToggle
                                 course_id: String(info.courseId),
                                 name: info.courseName,
                                 credits: info.credits,
-                                instructor_name: info.instructorId,
+                                instructor_name: teacherNames.get(info.instructorId) ?? info.instructorId,
                                 days_of_week: info.daysOfWeek,
                                 lecture_time_in_day: info.lectureTime,
                                 location: info.location,
@@ -126,12 +147,15 @@ export default function RegistrationA({ onSwitchPage, onLogout, isDark, onToggle
         setNotice({ type: 'info', message: 'Loading sections...' });
         try {
             const sectionDtos = await coursesRepository.getCourseSections(Number(courseId));
+            // Batch-fetch instructor names for this course's sections
+            const instructorIds = sectionDtos.map(s => s.instructor_id);
+            const teacherNames = await fetchTeacherNames(instructorIds);
             // Map SemesterCourseDto → CourseSection (flatten sessions into flat fields)
             const mapped: CourseSection[] = sectionDtos.map(s => {
                 const firstSession = s.sessions[0];
                 return {
                     semester_course_id: s.semester_course_id,
-                    instructor_name: s.instructor_id,
+                    instructor_name: teacherNames.get(s.instructor_id) ?? s.instructor_id,
                     days_of_week: firstSession?.day_of_week ?? '',
                     lecture_time_in_day: firstSession ? `${firstSession.time}-${firstSession.end_time}` : '',
                     location: firstSession?.location ?? '',

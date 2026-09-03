@@ -39,10 +39,22 @@ function memberDtoToMember(dto: TeamMemberDto): TeamMember {
     return {
         team_id: dto.team_id,
         user_id: dto.user_id,
-        full_name: dto.user_id, // full_name not available in TeamMemberDto; fallback to user_id
-        university_id: '',       // university_id not available in TeamMemberDto
-        team_role: dto.role,
+        full_name: dto.user_id,      // fallback to UUID until backend adds JOIN
+        university_id: '',           // fallback until backend adds JOIN
+        team_role: dto.role ?? '',
     };
+}
+
+/** Replaces the current logged-in user's fallback UUID display with their real name and ID. */
+function enrichWithCurrentUser(
+    members: TeamMember[],
+    userId: string,
+    userName: string,
+    universityId: string
+): TeamMember[] {
+    return members.map(m =>
+        m.user_id === userId ? { ...m, full_name: userName, university_id: universityId } : m
+    );
 }
 
 function invitationDtoToInvitation(dto: InvitationDto): Invitation {
@@ -95,8 +107,9 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
     const isSupervisor = userRole === 'supervisor';
 
     const [loading, setLoading] = useState(true);
-    const [currentUserId, setCurrentUserId] = useState('');
-    const [currentUserName, setCurrentUserName] = useState('');
+    const [currentUserId, setCurrentUserId] = useState<string>('');
+    const [currentUserName, setCurrentUserName] = useState<string>('');
+    const [currentUserUniversityId, setCurrentUserUniversityId] = useState<string>('');
     const [notice, setNotice] = useState<NoticeState>(null);
 
     const [hasTeam, setHasTeam] = useState(false);
@@ -132,6 +145,7 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
                 if (!session) return;
                 setCurrentUserId(session.user_id);
                 setCurrentUserName(session.full_name);
+                setCurrentUserUniversityId(session.university_id);
 
                 const inviteDtos = await teamsRepository.getPendingInvitations(session.user_id);
                 setInvitations(inviteDtos.map(invitationDtoToInvitation));
@@ -174,7 +188,10 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
                             teamsRepository.getTeamMembers(team.team_id),
                             fetchTeamReservations(team.team_id),
                         ]);
-                        const members = memberDtos.map(memberDtoToMember);
+                        const members = enrichWithCurrentUser(
+                            memberDtos.map(memberDtoToMember),
+                            session.user_id, session.full_name, session.university_id
+                        );
                         setTeamMembers(members);
                         setReservations(teamReservations);
 
@@ -218,7 +235,10 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
                         teamsRepository.getTeamMembers(team.team_id),
                         fetchTeamReservations(team.team_id),
                     ]);
-                    setTeamMembers(memberDtos.map(memberDtoToMember));
+                    setTeamMembers(enrichWithCurrentUser(
+                        memberDtos.map(memberDtoToMember),
+                        currentUserId, currentUserName, currentUserUniversityId
+                    ));
                     setReservations(teamReservations);
                 }
             }
@@ -245,7 +265,10 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
             setJoinRequests(prev => prev.filter(r => r.sender_user_id !== applicantUserId));
             // Refresh members so the new member appears in the panel immediately.
             const memberDtos = await teamsRepository.getTeamMembers(myTeamData.team_id);
-            setTeamMembers(memberDtos.map(memberDtoToMember));
+            setTeamMembers(enrichWithCurrentUser(
+                memberDtos.map(memberDtoToMember),
+                currentUserId, currentUserName, currentUserUniversityId
+            ));
             showNotice({ type: 'success', message: 'Join request accepted.' });
         } catch {
             showNotice({ type: 'error', message: 'Failed to accept join request.' });
@@ -270,7 +293,10 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
             setMyTeamData(team);
             setHasTeam(true);
             const memberDtos = await teamsRepository.getTeamMembers(team.team_id);
-            setTeamMembers(memberDtos.map(memberDtoToMember));
+            setTeamMembers(enrichWithCurrentUser(
+                memberDtos.map(memberDtoToMember),
+                currentUserId, currentUserName, currentUserUniversityId
+            ));
             setReservations([]);
             setShowCreateModal(false);
             showNotice({ type: 'success', message: `Team "${projectTitle}" created.` });
