@@ -23,11 +23,7 @@ export class SupabaseReservationsDataSource extends ReservationsDataSource {
             return null;
         }
 
-        return new ReservationDto({
-            team_id: data.team_id,
-            location: data.location,
-            reservation_time: data.reservation_time,
-        });
+        return new ReservationDto(data);
     }
 
     async bookPresentation(_teamId: number, _location: string, _time: string): Promise<ReservationDto> {
@@ -45,11 +41,7 @@ export class SupabaseReservationsDataSource extends ReservationsDataSource {
             throw new Error(`Failed to book presentation: ${error.message}`);
         }
 
-        return new ReservationDto({
-            team_id: data.team_id,
-            location: data.location,
-            reservation_time: data.reservation_time,
-        });
+        return new ReservationDto(data);
     }
 
     async updatePresentation(_teamId: number, _oldTime: string, _newLocation: string, _newTime: string): Promise<void> {

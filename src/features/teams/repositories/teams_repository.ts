@@ -1,9 +1,9 @@
 import type { TeamsDataSource } from '../datasources/teams_data_source';
-import { MockTeamsDataSource } from '../datasources/mock_teams_data_source';
 import type { TeamDto } from '../dtos/team_dto';
 import type { TeamMemberDto } from '../dtos/team_member_dto';
 import type { InvitationDto } from '../dtos/invitation_dto';
 import { SupabaseTeamsDataSource } from '../datasources/supabase_teams_data_source';
+import type { UserDto } from '../../auth/dtos/user_dto';
 
 /**
  * Repository for teams, delegating to an injected TeamsDataSource.
@@ -98,6 +98,12 @@ export class TeamsRepository {
     stopSupervising(teamId: number): Promise<void> {
         return this.dataSource.stopSupervising(teamId);
     }
+
+    getSupervisors(): Promise<UserDto[]> {
+        return this.dataSource.getSupervisors();
+    }
+
+
 }
 
 export const teamsRepository = new TeamsRepository(new SupabaseTeamsDataSource());

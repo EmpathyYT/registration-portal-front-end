@@ -1,10 +1,3 @@
-export interface User {
-    user_id: string;
-    full_name: string;
-    university_id: string;
-    role: 'student' | 'supervisor';
-}
-
 export interface Team {
     team_id: number;
     project_title: string | null;

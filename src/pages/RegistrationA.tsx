@@ -71,16 +71,16 @@ export default function RegistrationA({ onSwitchPage, onLogout, isDark, onToggle
             try {
                 const session = await authRepository.getCurrentSession();
                 if (!session) return;
-                setCurrentUserId(session.user_id);
+                setCurrentUserId(session.id);
 
                 const [courseDtos, enrollmentDtos] = await Promise.all([
                     coursesRepository.getAvailableCourses(),
-                    coursesRepository.getStudentSchedule(session.user_id),
+                    coursesRepository.getStudentSchedule(session.id),
                 ]);
 
                 // Map CourseDto → Course (course_id is number in DTO; stringify for local type)
                 const courses: Course[] = courseDtos.map(c => ({
-                    course_id: String(c.course_id),
+                    course_id: String(c.id),
                     name: c.name,
                     credits: c.credits,
                 }));
@@ -90,7 +90,7 @@ export default function RegistrationA({ onSwitchPage, onLogout, isDark, onToggle
                 // Fetch sections for each enrolled course to build full EnrolledCourse objects.
                 if (enrollmentDtos.length > 0) {
                     const sectionPromises = courseDtos.map(c =>
-                        coursesRepository.getCourseSections(c.course_id)
+                        coursesRepository.getCourseSections(c.id)
                     );
                     const allSectionGroups = await Promise.all(sectionPromises);
 
@@ -99,8 +99,8 @@ export default function RegistrationA({ onSwitchPage, onLogout, isDark, onToggle
                     courseDtos.forEach((courseDto, idx) => {
                         allSectionGroups[idx].forEach(sectionDto => {
                             const firstSession = sectionDto.sessions[0];
-                            sectionLookup.set(sectionDto.semester_course_id, {
-                                courseId: courseDto.course_id,
+                            sectionLookup.set(sectionDto.id, {
+                                courseId: courseDto.id,
                                 courseName: courseDto.name,
                                 credits: courseDto.credits,
                                 instructorId: sectionDto.instructor_id,
@@ -154,7 +154,7 @@ export default function RegistrationA({ onSwitchPage, onLogout, isDark, onToggle
             const mapped: CourseSection[] = sectionDtos.map(s => {
                 const firstSession = s.sessions[0];
                 return {
-                    semester_course_id: s.semester_course_id,
+                    semester_course_id: s.id,
                     instructor_name: teacherNames.get(s.instructor_id) ?? s.instructor_id,
                     days_of_week: firstSession?.day_of_week ?? '',
                     lecture_time_in_day: firstSession ? `${firstSession.time}-${firstSession.end_time}` : '',

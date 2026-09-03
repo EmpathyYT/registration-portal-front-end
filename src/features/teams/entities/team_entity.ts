@@ -8,4 +8,5 @@ export interface TeamEntity {
     status: ProjectStatus | null;
     introduction_link: string | null;
     supervisor_id: string | null;
+    member_count: number;
 }

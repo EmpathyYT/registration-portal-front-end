@@ -3,27 +3,49 @@ import { TeamDto } from '../dtos/team_dto';
 import { TeamMemberDto } from '../dtos/team_member_dto';
 import { InvitationDto } from '../dtos/invitation_dto';
 import { supabase } from '../../../core/supabaseClient';
+import { UserDto } from '../../auth/dtos/user_dto';
 
 /**
  * Supabase-backed implementation of TeamsDataSource.
- * Not implemented yet.
  */
 export class SupabaseTeamsDataSource extends TeamsDataSource {
+    async getMemberCount(teamId: number): Promise<number> {
+        const { data, error } = await supabase.rpc('get_team_member_count', {
+            p_team_id: teamId,
+        });
+
+        if (error) {
+            throw new Error(`Failed to get member count: ${error.message}`);
+        }
+
+        return data;
+    }
+
+    async getSupervisors(): Promise<UserDto[]> {
+        const { data, error } = await supabase
+            .from('users')
+            .select('id, full_name, university_id, role')
+            .eq('role', 'teacher');
+
+        if (error) {
+            throw new Error(`Failed to fetch supervisors: ${error.message}`);
+        }
+
+        return data.map((user) => new UserDto(user));
+    }
+
     async getAvailableTeams(): Promise<TeamDto[]> {
-        const {data, error} = await supabase.from('teams').select('*');
+        const { data, error } = await supabase.from('teams').select('id, min_users, max_users, project_title, status, introduction_link, supervisor_id');
         if (error) {
             throw new Error(`Failed to fetch available teams: ${error.message}`);
-        
+
         }
-        return data.map((team) => new TeamDto({
-            team_id: team.id,
-            min_users: team.min_users,
-            max_users: team.max_users,
-            project_title: team.project_title,
-            status: team.status,
-            introduction_link: team.introduction_link,
-            supervisor_id: team.supervisor_id,
+
+        const memberCount = await Promise.all(data.map((team) => {
+            return this.getMemberCount(team.id);
         }));
+
+        return data.map((team, index) => new TeamDto({ ...team, member_count: memberCount[index] }));
     }
 
     async createTeam(_projectTitle: string): Promise<TeamDto> {
@@ -34,22 +56,14 @@ export class SupabaseTeamsDataSource extends TeamsDataSource {
                 min_users: 1,
                 max_users: 6,
             })
-            .select()
+            .select('id, min_users, max_users, project_title, status, introduction_link, supervisor_id')
             .single();
 
         if (error) {
             throw new Error(`Failed to create team: ${error.message}`);
         }
 
-        return new TeamDto({
-            team_id: data.id,
-            min_users: data.min_users,
-            max_users: data.max_users,
-            project_title: data.project_title,
-            status: data.status,
-            introduction_link: data.introduction_link,
-            supervisor_id: data.supervisor_id,
-        });
+        return new TeamDto({ ...data, member_count: 1 });
     }
 
     async requestToJoinTeam(_teamId: number): Promise<void> {
@@ -78,10 +92,10 @@ export class SupabaseTeamsDataSource extends TeamsDataSource {
         }
 
         const teamId = data.team_id;
-
+        const memberCount = await this.getMemberCount(teamId);
         const { data: teamData, error: teamError } = await supabase
             .from('teams')
-            .select('*')
+            .select('id, min_users, max_users, project_title, status, introduction_link, supervisor_id')
             .eq('id', teamId)
             .single();
 
@@ -89,32 +103,20 @@ export class SupabaseTeamsDataSource extends TeamsDataSource {
             throw new Error(`Failed to fetch team details: ${teamError.message}`);
         }
 
-        return new TeamDto({
-            team_id: teamData.id,
-            min_users: teamData.min_users,
-            max_users: teamData.max_users,
-            project_title: teamData.project_title,
-            status: teamData.status,
-            introduction_link: teamData.introduction_link,
-            supervisor_id: teamData.supervisor_id,
-        });
+        return new TeamDto({ ...teamData, member_count: memberCount });
     }
 
     async getTeamMembers(_teamId: number): Promise<TeamMemberDto[]> {
         const { data, error } = await supabase
-            .from('team_members')
-            .select('*')
+            .from('team_members_with_names')
+            .select('team_id, user_id, role:member_role, full_name, university_id')
             .eq('team_id', _teamId);
 
         if (error) {
             throw new Error(`Failed to fetch team members: ${error.message}`);
         }
 
-        return data.map((member) => new TeamMemberDto({
-            team_id: member.team_id,
-            user_id: member.user_id,
-            role: member.role,
-        }));
+        return data.map((member) => new TeamMemberDto(member));
     }
 
     async leaveTeam(_userId: string, _teamId: number): Promise<void> {
@@ -146,7 +148,7 @@ export class SupabaseTeamsDataSource extends TeamsDataSource {
             p_team_id: _teamId,
             p_new_leader_user_id: _memberUserId,
         });
-        
+
         if (error) {
             throw new Error(`Failed to promote member to leader: ${error.message}`);
         }
@@ -158,7 +160,7 @@ export class SupabaseTeamsDataSource extends TeamsDataSource {
             p_user_id: _userId,
             p_new_role: _newRole,
         });
-        
+
         if (error) {
             throw new Error(`Failed to update member role: ${error.message}`);
         }
@@ -187,7 +189,7 @@ export class SupabaseTeamsDataSource extends TeamsDataSource {
 
     async getPendingInvitations(_userId: string): Promise<InvitationDto[]> {
         const { data, error } = await supabase
-            .from('invitations')
+            .from('invitations_with_names')
             .select('*')
             .eq('receiver_user_id', _userId);
 
@@ -195,15 +197,22 @@ export class SupabaseTeamsDataSource extends TeamsDataSource {
             throw new Error(`Failed to fetch pending invitations: ${error.message}`);
         }
 
-        return data;
+        return data.map((invitation) => new InvitationDto(invitation));
     }
 
     async sendInvitation(_senderId: string, _receiverUniId: string): Promise<void> {
-        const {error: receiverError} = await supabase
+        const { data: receiverData, error: receiverFetchError } = await supabase.rpc('get_user_id', {
+            p_user_university_id: _receiverUniId,
+        });
+
+        if (receiverFetchError) {
+            throw new Error(`Failed to fetch receiver user ID: ${receiverFetchError.message}`);
+        }
+        const { error: receiverError } = await supabase
             .from('invitations')
             .insert({
                 sender_user_id: _senderId,
-                receiver_user_id: _receiverUniId,
+                receiver_user_id: receiverData.id,
                 invitation_type: 'invite',
             });
 
@@ -223,7 +232,7 @@ export class SupabaseTeamsDataSource extends TeamsDataSource {
     }
 
     async declineInvitation(_senderUserId: string, _receiverUserId: string): Promise<void> {
-       const { error } = await supabase
+        const { error } = await supabase
             .from('invitations')
             .delete()
             .eq('sender_user_id', _senderUserId)
@@ -250,7 +259,7 @@ export class SupabaseTeamsDataSource extends TeamsDataSource {
         }
 
         const { data, error } = await supabase
-            .from('invitations')
+            .from('invitations_with_names')
             .select('*')
             .in('sender_user_id', memberIds)
             .eq('invitation_type', 'join_request');
@@ -259,12 +268,7 @@ export class SupabaseTeamsDataSource extends TeamsDataSource {
             throw new Error(`Failed to fetch pending join requests: ${error.message}`);
         }
 
-        return data.map((invitation) => new InvitationDto({
-            sender_user_id: invitation.sender_user_id,
-            receiver_user_id: invitation.receiver_user_id,
-            created_at: invitation.created_at,
-            invitation_type: invitation.invitation_type,
-        }));
+        return data.map((invitation) => new InvitationDto(invitation));
     }
 
     async acceptJoinRequest(_applicantUserId: string, _teamId: number): Promise<void> {
@@ -292,43 +296,32 @@ export class SupabaseTeamsDataSource extends TeamsDataSource {
     async getSupervisedTeams(_supervisorId: string): Promise<TeamDto[]> {
         const { data, error } = await supabase
             .from('teams')
-            .select('*')
+            .select('id, min_users, max_users, project_title, status, introduction_link, supervisor_id')
             .eq('supervisor_id', _supervisorId);
 
         if (error) {
             throw new Error(`Failed to fetch supervised teams: ${error.message}`);
         }
 
-        return data.map((team) => new TeamDto({
-            team_id: team.id,
-            min_users: team.min_users,
-            max_users: team.max_users,
-            project_title: team.project_title,
-            status: team.status,
-            introduction_link: team.introduction_link,
-            supervisor_id: team.supervisor_id,
-        }));
+        const memberCounts = await Promise.all(data.map((team) => this.getMemberCount(team.id)));
+
+        return data.map((team) => new TeamDto({ ...team, member_count: memberCounts[data.indexOf(team)] }));
     }
 
     async getUnsupervisedTeams(): Promise<TeamDto[]> {
         const { data, error } = await supabase
             .from('teams')
-            .select('*')
+            .select('id, min_users, max_users, project_title, status, introduction_link, supervisor_id')
             .is('supervisor_id', null);
 
         if (error) {
             throw new Error(`Failed to fetch unsupervised teams: ${error.message}`);
         }
 
-        return data.map((team) => new TeamDto({
-            team_id: team.id,
-            min_users: team.min_users,
-            max_users: team.max_users,
-            project_title: team.project_title,
-            status: team.status,
-            introduction_link: team.introduction_link,
-            supervisor_id: team.supervisor_id,
-        }));
+
+        const memberCounts = await Promise.all(data.map((team) => this.getMemberCount(team.id)));
+
+        return data.map((team, index) => new TeamDto({ ...team, member_count: memberCounts[index] }));
     }
 
     async setTeamSupervisor(_teamId: number, _supervisorId: string): Promise<void> {

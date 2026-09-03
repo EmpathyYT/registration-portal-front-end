@@ -24,7 +24,7 @@ import type { ReservationDto } from '../features/reservations/dtos/reservation_d
 
 function teamDtoToTeam(dto: TeamDto, supervisorName?: string): Team {
     return {
-        team_id: dto.team_id,
+        team_id: dto.id,
         project_title: dto.project_title,
         status: dto.status as Team['status'],
         min_users: dto.min_users,
@@ -32,6 +32,7 @@ function teamDtoToTeam(dto: TeamDto, supervisorName?: string): Team {
         introduction_link: dto.introduction_link,
         supervisor_id: dto.supervisor_id,
         supervisor_name: supervisorName,
+        member_count: dto.member_count,
     };
 }
 
@@ -39,30 +40,18 @@ function memberDtoToMember(dto: TeamMemberDto): TeamMember {
     return {
         team_id: dto.team_id,
         user_id: dto.user_id,
-        full_name: dto.user_id,      // fallback to UUID until backend adds JOIN
-        university_id: '',           // fallback until backend adds JOIN
+        full_name: dto.full_name,
+        university_id: dto.university_id,
         team_role: dto.role ?? '',
     };
-}
-
-/** Replaces the current logged-in user's fallback UUID display with their real name and ID. */
-function enrichWithCurrentUser(
-    members: TeamMember[],
-    userId: string,
-    userName: string,
-    universityId: string
-): TeamMember[] {
-    return members.map(m =>
-        m.user_id === userId ? { ...m, full_name: userName, university_id: universityId } : m
-    );
 }
 
 function invitationDtoToInvitation(dto: InvitationDto): Invitation {
     return {
         sender_user_id: dto.sender_user_id,
         receiver_user_id: dto.receiver_user_id,
-        sender_full_name: dto.sender_user_id, // full_name not in InvitationDto; fallback to user_id
-        sender_university_id: '',              // not available in InvitationDto
+        sender_full_name: dto.sender_full_name,
+        sender_university_id: dto.sender_university_id,
         created_at: dto.created_at,
         invitation_type: dto.invitation_type,
     };
@@ -82,8 +71,8 @@ function joinRequestDtoToInvitation(dto: InvitationDto): Invitation {
     return {
         sender_user_id: dto.receiver_user_id,   // student applicant
         receiver_user_id: dto.sender_user_id,   // team leader
-        sender_full_name: dto.receiver_user_id, // fallback to UUID until backend adds JOIN
-        sender_university_id: '',
+        sender_full_name: dto.receiver_full_name,
+        sender_university_id: dto.receiver_university_id,
         created_at: dto.created_at,
         invitation_type: dto.invitation_type,
     };
@@ -143,23 +132,23 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
             try {
                 const session = await authRepository.getCurrentSession();
                 if (!session) return;
-                setCurrentUserId(session.user_id);
+                setCurrentUserId(session.id);
                 setCurrentUserName(session.full_name);
                 setCurrentUserUniversityId(session.university_id);
 
-                const inviteDtos = await teamsRepository.getPendingInvitations(session.user_id);
+                const inviteDtos = await teamsRepository.getPendingInvitations(session.id);
                 setInvitations(inviteDtos.map(invitationDtoToInvitation));
 
                 if (isSupervisor) {
                     const [supervisedDtos, unsupervisedDtos] = await Promise.all([
-                        teamsRepository.getSupervisedTeams(session.user_id),
+                        teamsRepository.getSupervisedTeams(session.id),
                         teamsRepository.getUnsupervisedTeams(),
                     ]);
                     const enriched: SupervisedTeamData[] = await Promise.all(
                         supervisedDtos.map(async (teamDto) => {
                             const [memberDtos, teamReservations] = await Promise.all([
-                                teamsRepository.getTeamMembers(teamDto.team_id),
-                                fetchTeamReservations(teamDto.team_id),
+                                teamsRepository.getTeamMembers(teamDto.id),
+                                fetchTeamReservations(teamDto.id),
                             ]);
                             return {
                                 team: teamDtoToTeam(teamDto),
@@ -174,7 +163,7 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
                 } else {
                     let teamDto = null;
                     try {
-                        teamDto = await teamsRepository.getUserTeam(session.user_id);
+                        teamDto = await teamsRepository.getUserTeam(session.id);
                     } catch {
                         // Student has no team yet — .single() throws when 0 rows are found.
                         // Treat this as the normal "no team" state, not a fatal error.
@@ -188,16 +177,13 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
                             teamsRepository.getTeamMembers(team.team_id),
                             fetchTeamReservations(team.team_id),
                         ]);
-                        const members = enrichWithCurrentUser(
-                            memberDtos.map(memberDtoToMember),
-                            session.user_id, session.full_name, session.university_id
-                        );
+                        const members = memberDtos.map(memberDtoToMember);
                         setTeamMembers(members);
                         setReservations(teamReservations);
 
                         // If the current user is the team leader, fetch pending join requests.
                         const isLeader = members.some(
-                            m => m.user_id === session.user_id && m.team_role === 'Team Leader'
+                            m => m.user_id === session.id && m.team_role === 'Team Leader'
                         );
                         if (isLeader) {
                             try {
@@ -235,10 +221,7 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
                         teamsRepository.getTeamMembers(team.team_id),
                         fetchTeamReservations(team.team_id),
                     ]);
-                    setTeamMembers(enrichWithCurrentUser(
-                        memberDtos.map(memberDtoToMember),
-                        currentUserId, currentUserName, currentUserUniversityId
-                    ));
+                    setTeamMembers(memberDtos.map(memberDtoToMember));
                     setReservations(teamReservations);
                 }
             }
@@ -265,10 +248,7 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
             setJoinRequests(prev => prev.filter(r => r.sender_user_id !== applicantUserId));
             // Refresh members so the new member appears in the panel immediately.
             const memberDtos = await teamsRepository.getTeamMembers(myTeamData.team_id);
-            setTeamMembers(enrichWithCurrentUser(
-                memberDtos.map(memberDtoToMember),
-                currentUserId, currentUserName, currentUserUniversityId
-            ));
+            setTeamMembers(memberDtos.map(memberDtoToMember));
             showNotice({ type: 'success', message: 'Join request accepted.' });
         } catch {
             showNotice({ type: 'error', message: 'Failed to accept join request.' });
@@ -293,10 +273,7 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
             setMyTeamData(team);
             setHasTeam(true);
             const memberDtos = await teamsRepository.getTeamMembers(team.team_id);
-            setTeamMembers(enrichWithCurrentUser(
-                memberDtos.map(memberDtoToMember),
-                currentUserId, currentUserName, currentUserUniversityId
-            ));
+            setTeamMembers(memberDtos.map(memberDtoToMember));
             setReservations([]);
             setShowCreateModal(false);
             showNotice({ type: 'success', message: `Team "${projectTitle}" created.` });

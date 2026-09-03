@@ -1,6 +1,7 @@
 import type { TeamDto } from '../dtos/team_dto';
 import type { TeamMemberDto } from '../dtos/team_member_dto';
 import type { InvitationDto } from '../dtos/invitation_dto';
+import type { UserDto } from '../../auth/dtos/user_dto';
 
 /**
  * Base contract for teams data sources.
@@ -150,4 +151,19 @@ export abstract class TeamsDataSource {
      * @param teamId - The id of the team.
      */
     abstract stopSupervising(teamId: number): Promise<void>;
+
+    /**
+     * Gets every user with the role of "teacher" (supervisor).
+     * @returns The list of supervisors.
+     */
+    abstract getSupervisors(): Promise<UserDto[]>;
+
+
+
+    /**
+     * Gets the number of members in a team.
+     * @param teamId - The id of the team.
+     * @returns The number of members in the team.
+     */
+    abstract getMemberCount(teamId: number): Promise<number>;
 }

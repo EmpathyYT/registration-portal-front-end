@@ -51,7 +51,7 @@ export class SupabaseAuthDataSource extends AuthDataSource {
 
         const { data: userData, error: userError } = await supabase
             .from('users')
-            .select('*')
+            .select('id, full_name, university_id, role')
             .eq('id', session.user.id)
             .single();
 
@@ -59,11 +59,6 @@ export class SupabaseAuthDataSource extends AuthDataSource {
             throw new Error(`Failed to fetch user data: ${userError.message}`);
         }
 
-        return new UserDto({
-            user_id: session.user.id,
-            full_name: userData.full_name,
-            university_id: userData.university_id,
-            role: userData.role,
-        });
+        return new UserDto(userData);
     }
 }
