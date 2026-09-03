@@ -59,7 +59,6 @@ export const AvailableTeamsGrid: React.FC<AvailableTeamsGridProps> = ({
             ) : (
                 <div className={styles.grid}>
                     {teams.map((team, index) => {
-                        const fillPercentage = (team.min_users / team.max_users) * 100;
                         const hasActed = actedTeams.includes(team.team_id);
                         const isActing = actingTeamId === team.team_id;
 
@@ -73,11 +72,8 @@ export const AvailableTeamsGrid: React.FC<AvailableTeamsGridProps> = ({
                                         <h5 className={styles.cardTitle}>{team.project_title}</h5>
                                         <div className={styles.cardBottom}>
                                             <div className={styles.capacityRow}>
-                                                <span>Capacity</span>
-                                                <span>{team.min_users} / {team.max_users} Members</span>
-                                            </div>
-                                            <div className={styles.progress}>
-                                                <div className={styles.progressBar} role="progressbar" style={{ width: `${fillPercentage}%` }}></div>
+                                                <span>Team Size</span>
+                                                <span>{team.min_users}–{team.max_users} Members</span>
                                             </div>
                                             <button
                                                 className={styles.actionBtn(hasActed)}

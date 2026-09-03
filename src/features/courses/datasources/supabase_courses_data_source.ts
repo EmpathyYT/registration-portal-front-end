@@ -11,28 +11,27 @@ import { SessionDto } from '../dtos/session_dto';
  */
 export class SupabaseCoursesDataSource extends CoursesDataSource {
     async getAvailableCourses(): Promise<CourseDto[]> {
-        const { data, error } = await supabase.from('courses').select('*');
+        const { data, error } = await supabase.from('courses').select('id, name, credits, subject');
 
         if (error) {
             throw new Error(`Failed to fetch available courses: ${error.message}`);
         }
-        return data.map((course) => new CourseDto({
-            course_id: course.id,
-            name: course.name,
-            credits: course.credits,
-            subject: course.subject,
-        }));
+        return data.map((course) => new CourseDto(course));
     }
 
     async getCourseSections(_courseId: number): Promise<SemesterCourseDto[]> {
-        const { data, error } = await supabase.from('semester_courses').select('*').eq('course_id', _courseId);
+        const { data, error } = await supabase
+            .from('semester_courses')
+            .select('id, course_id, instructor_id:instructor')
+            .eq('course_id', _courseId);
 
         if (error) {
             throw new Error(`Failed to fetch course sections for course ID ${_courseId}: ${error.message}`);
         }
 
-        const { data: sessionsData, error: sessionsError } = await supabase.from('sessions').select('*').in('semester_course_id', data.map(section => section.id));
 
+        const { data: sessionsData, error: sessionsError } = await supabase.from('sessions').select('*').in('semester_course_id', data.map(section => section.id));
+        
         if (sessionsError) {
             throw new Error(`Failed to fetch sessions for course sections: ${sessionsError.message}`);
         }
@@ -40,14 +39,7 @@ export class SupabaseCoursesDataSource extends CoursesDataSource {
 
         const sessionsMap = new Map<number, SessionDto[]>();
         sessionsData.forEach(session => {
-            const sessionDto = new SessionDto({
-                session_id: session.session_id,
-                semester_course_id: session.semester_course_id,
-                day_of_week: session.day_of_week,
-                time: session.time,
-                end_time: session.end_time,
-                location: session.location,
-            });
+            const sessionDto = new SessionDto(session);
 
             if (!sessionsMap.has(session.semester_course_id)) {
                 sessionsMap.set(session.semester_course_id, []);
@@ -56,13 +48,11 @@ export class SupabaseCoursesDataSource extends CoursesDataSource {
         });
 
         return data.map((section) => new SemesterCourseDto({
-            semester_course_id: section.id,
-            course_id: section.course_id,
-            instructor_id: section.instructor,
+            ...section,
             sessions: sessionsMap.get(section.id) || [],
         }));
     }
-    
+
     async getStudentSchedule(_userId: string): Promise<EnrollmentDto[]> {
         const { data, error } = await supabase.from('enrollments').select('*').eq('user_id', _userId);
 
@@ -70,10 +60,7 @@ export class SupabaseCoursesDataSource extends CoursesDataSource {
             throw new Error(`Failed to fetch student schedule for user ID ${_userId}: ${error.message}`);
         }
 
-        return data.map((enrollment) => new EnrollmentDto({
-            user_id: enrollment.user_id,
-            semester_course_id: enrollment.semester_course_id,
-        }));
+        return data.map((enrollment) => new EnrollmentDto(enrollment));
     }
 
     async commitSchedule(_userId: string, _semesterCourseIds: number[]): Promise<void> {

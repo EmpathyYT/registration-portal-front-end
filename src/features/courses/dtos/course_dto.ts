@@ -1,13 +1,13 @@
 import type { Subject, CourseEntity } from '../entities/course_entity';
 
 export class CourseDto {
-    course_id: number;
+    id: number;
     name: string;
     credits: number;
     subject: Subject;
 
-    constructor(data: { course_id: number; name: string; credits: number; subject: Subject }) {
-        this.course_id = data.course_id;
+    constructor(data: { id: number; name: string; credits: number; subject: Subject }) {
+        this.id = data.id;
         this.name = data.name;
         this.credits = data.credits;
         this.subject = data.subject;
@@ -15,7 +15,7 @@ export class CourseDto {
 
     static fromEntity(entity: CourseEntity): CourseDto {
         return new CourseDto({
-            course_id: entity.id,
+            id: entity.id,
             name: entity.name,
             credits: entity.credits,
             subject: entity.subject,
@@ -24,7 +24,7 @@ export class CourseDto {
 
     toEntity(): CourseEntity {
         return {
-            id: this.course_id,
+            id: this.id,
             name: this.name,
             credits: this.credits,
             subject: this.subject,

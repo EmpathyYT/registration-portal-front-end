@@ -6,9 +6,10 @@ type InvitationsFeedProps = {
     invitations: Invitation[];
     onAccept: (senderUserId: string) => void;
     onDecline: (senderUserId: string) => void;
+    title?: string;
 };
 
-export default function InvitationsFeed({ invitations, onAccept, onDecline }: InvitationsFeedProps) {
+export default function InvitationsFeed({ invitations, onAccept, onDecline, title = 'Pending Invitations' }: InvitationsFeedProps) {
     const [respondingId, setRespondingId] = useState<string | null>(null);
     const [activeIndex, setActiveIndex] = useState(0);
 
@@ -34,7 +35,7 @@ export default function InvitationsFeed({ invitations, onAccept, onDecline }: In
                         <path d="M.05 3.555A2 2 0 0 1 2 2h12a2 2 0 0 1 1.95 1.555L8 8.414.05 3.555ZM0 4.697v7.104l5.803-3.558L0 4.697ZM6.761 8.83l-6.57 4.027A2 2 0 0 0 2 14h12a2 2 0 0 0 1.808-1.144l-6.57-4.027L8 9.586l-1.239-.757Zm3.436-.586L16 11.801V4.697l-5.803 3.546Z"/>
                     </svg>
                 </div>
-                <h6 className={styles.title}>Pending Invitations</h6>
+                <h6 className={styles.title}>{title}</h6>
                 {invitations.length > 0 && (
                     <span className={styles.badge(invitations.length > 1)}>
                         <svg width="9" height="9" fill="currentColor" className="flex-shrink-0" viewBox="0 0 16 16">

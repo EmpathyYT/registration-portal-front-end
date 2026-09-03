@@ -4,9 +4,10 @@ import { TeamMemberDto } from '../dtos/team_member_dto';
 import { InvitationDto } from '../dtos/invitation_dto';
 import type { TeamEntity } from '../entities/team_entity';
 import type { TeamMemberEntity } from '../entities/team_member_entity';
-import type { InvitationEntity } from '../entities/invitation_entity';
+import type { InvitationEntity, InvitationType } from '../entities/invitation_entity';
 import type { UserEntity } from '../../auth/entities/user_entity';
 import { authRepository } from '../../auth/repositories/auth_repository';
+import { UserDto } from '../../auth/dtos/user_dto';
 
 /** Test user pool: "you" (user1, matches MockAuthDataSource's fixed session id) plus 6 others. */
 const MOCK_USERS: UserEntity[] = [
@@ -29,19 +30,48 @@ const MOCK_TEAMS: TeamEntity[] = [
         status: 'approved',
         introduction_link: null,
         supervisor_id: null,
+        member_count: 3,
     },
 ];
 
+function findMockUser(userId: string): UserEntity {
+    const user = MOCK_USERS.find((u) => u.id === userId);
+    if (!user) {
+        throw new Error(`Unknown mock user: ${userId}`);
+    }
+    return user;
+}
+
 const MOCK_TEAM_MEMBERS: TeamMemberEntity[] = [
-    { team_id: 1, user_id: 'user2', role: 'Team Leader' },
-    { team_id: 1, user_id: 'user3', role: 'Backend Dev' },
-    { team_id: 1, user_id: 'user4', role: 'Frontend Dev' },
+    { team_id: 1, user_id: 'user2', role: 'Team Leader', full_name: findMockUser('user2').full_name, university_id: findMockUser('user2').university_id },
+    { team_id: 1, user_id: 'user3', role: 'Backend Dev', full_name: findMockUser('user3').full_name, university_id: findMockUser('user3').university_id },
+    { team_id: 1, user_id: 'user4', role: 'Frontend Dev', full_name: findMockUser('user4').full_name, university_id: findMockUser('user4').university_id },
 ];
+
+function makeInvitationEntity(
+    senderId: string,
+    receiverId: string,
+    invitationType: InvitationType,
+    createdAt: string = new Date().toISOString()
+): InvitationEntity {
+    const sender = findMockUser(senderId);
+    const receiver = findMockUser(receiverId);
+    return {
+        sender_user_id: sender.id,
+        receiver_user_id: receiver.id,
+        sender_full_name: sender.full_name,
+        sender_university_id: sender.university_id,
+        receiver_full_name: receiver.full_name,
+        receiver_university_id: receiver.university_id,
+        created_at: createdAt,
+        invitation_type: invitationType,
+    };
+}
 
 /** "You" (user1) always start with a pending invite to join the Smart Campus App team. */
 const MOCK_INVITATIONS: InvitationEntity[] = [
-    { sender_user_id: 'user2', receiver_user_id: 'user1', created_at: new Date().toISOString(), invitation_type: 'invite' },
-    { sender_user_id: 'user7', receiver_user_id: 'user2', created_at: new Date().toISOString(), invitation_type: 'join_request' },
+    makeInvitationEntity('user2', 'user1', 'invite'),
+    makeInvitationEntity('user7', 'user2', 'join_request'),
 ];
 
 /** Appending "aj" to the university id you're inviting skips the pending invite and joins them immediately. */
@@ -53,6 +83,13 @@ const AUTO_JOIN_SUFFIX = 'aj';
  * teams, team_members and invitations mirroring the real tables.
  */
 export class MockTeamsDataSource extends TeamsDataSource {
+    getSupervisors(): Promise<UserDto[]> {
+        const supervisors = MOCK_USERS.filter((u) => u.role === 'teacher').map((u) => UserDto.fromEntity(u));
+        return Promise.resolve(supervisors);
+    }
+    getMemberCount(teamId: number): Promise<number> {
+        return Promise.resolve(this.teamMembers.filter((m) => m.team_id === teamId).length);
+    }
     private readonly teams: TeamEntity[] = MOCK_TEAMS;
     private readonly teamMembers: TeamMemberEntity[] = MOCK_TEAM_MEMBERS;
     private readonly invitations: InvitationEntity[] = MOCK_INVITATIONS;
@@ -73,7 +110,18 @@ export class MockTeamsDataSource extends TeamsDataSource {
         if (this.findMembership(userId)) {
             throw new Error('User already belongs to a team');
         }
-        this.teamMembers.push({ team_id: teamId, user_id: userId, role });
+        const user = findMockUser(userId);
+        this.teamMembers.push({
+            team_id: teamId,
+            user_id: userId,
+            role,
+            full_name: user.full_name,
+            university_id: user.university_id,
+        });
+        const team = this.teams.find((t) => t.id === teamId);
+        if (team) {
+            team.member_count += 1;
+        }
     }
 
     async getAvailableTeams(): Promise<TeamDto[]> {
@@ -91,8 +139,9 @@ export class MockTeamsDataSource extends TeamsDataSource {
             status: 'pending',
             introduction_link: null,
             supervisor_id: null,
+            member_count: 1,
         };
-        const currentUser = (await authRepository.getCurrentSession())?.user_id;
+        const currentUser = (await authRepository.getCurrentSession())?.id;
         if (!currentUser) {
             throw new Error('No current user session found');
         }
@@ -103,7 +152,7 @@ export class MockTeamsDataSource extends TeamsDataSource {
     }
 
     async requestToJoinTeam(teamId: number): Promise<void> {
-          const currentUser = (await authRepository.getCurrentSession())?.user_id;
+          const currentUser = (await authRepository.getCurrentSession())?.id;
         if (!currentUser) {
             throw new Error('No current user session found');
         }
@@ -135,6 +184,10 @@ export class MockTeamsDataSource extends TeamsDataSource {
         const index = this.teamMembers.findIndex((m) => m.user_id === memberUserId && m.team_id === teamId);
         if (index !== -1) {
             this.teamMembers.splice(index, 1);
+        }
+        const team = this.teams.find((t) => t.id === teamId);
+        if (team) {
+            team.member_count -= 1;
         }
     }
 
@@ -195,12 +248,7 @@ export class MockTeamsDataSource extends TeamsDataSource {
             return;
         }
 
-        this.invitations.push({
-            sender_user_id: senderId,
-            receiver_user_id: receiver.id,
-            created_at: new Date().toISOString(),
-            invitation_type: 'invite',
-        });
+        this.invitations.push(makeInvitationEntity(senderId, receiver.id, 'invite'));
     }
 
     async acceptInvitation(senderUserId: string, receiverUserId: string): Promise<void> {

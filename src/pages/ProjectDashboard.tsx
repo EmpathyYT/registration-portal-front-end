@@ -24,7 +24,7 @@ import type { ReservationDto } from '../features/reservations/dtos/reservation_d
 
 function teamDtoToTeam(dto: TeamDto, supervisorName?: string): Team {
     return {
-        team_id: dto.team_id,
+        team_id: dto.id,
         project_title: dto.project_title,
         status: dto.status as Team['status'],
         min_users: dto.min_users,
@@ -32,6 +32,7 @@ function teamDtoToTeam(dto: TeamDto, supervisorName?: string): Team {
         introduction_link: dto.introduction_link,
         supervisor_id: dto.supervisor_id,
         supervisor_name: supervisorName,
+        member_count: dto.member_count,
     };
 }
 
@@ -39,9 +40,9 @@ function memberDtoToMember(dto: TeamMemberDto): TeamMember {
     return {
         team_id: dto.team_id,
         user_id: dto.user_id,
-        full_name: dto.user_id, // full_name not available in TeamMemberDto; fallback to user_id
-        university_id: '',       // university_id not available in TeamMemberDto
-        team_role: dto.role,
+        full_name: dto.full_name,
+        university_id: dto.university_id,
+        team_role: dto.role ?? '',
     };
 }
 
@@ -49,8 +50,8 @@ function invitationDtoToInvitation(dto: InvitationDto): Invitation {
     return {
         sender_user_id: dto.sender_user_id,
         receiver_user_id: dto.receiver_user_id,
-        sender_full_name: dto.sender_user_id, // full_name not in InvitationDto; fallback to user_id
-        sender_university_id: '',              // not available in InvitationDto
+        sender_full_name: dto.sender_full_name,
+        sender_university_id: dto.sender_university_id,
         created_at: dto.created_at,
         invitation_type: dto.invitation_type,
     };
@@ -61,6 +62,19 @@ function reservationDtoToReservation(dto: ReservationDto): Reservation {
         team_id: dto.team_id,
         location: dto.location,
         reservation_time: dto.reservation_time,
+    };
+}
+
+// Join requests are stored as (sender=team_leader, receiver=student_applicant).
+// We flip them so InvitationsFeed.onAccept(sender_user_id) receives the student's UUID.
+function joinRequestDtoToInvitation(dto: InvitationDto): Invitation {
+    return {
+        sender_user_id: dto.receiver_user_id,   // student applicant
+        receiver_user_id: dto.sender_user_id,   // team leader
+        sender_full_name: dto.receiver_full_name,
+        sender_university_id: dto.receiver_university_id,
+        created_at: dto.created_at,
+        invitation_type: dto.invitation_type,
     };
 }
 
@@ -82,8 +96,9 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
     const isSupervisor = userRole === 'supervisor';
 
     const [loading, setLoading] = useState(true);
-    const [currentUserId, setCurrentUserId] = useState('');
-    const [currentUserName, setCurrentUserName] = useState('');
+    const [currentUserId, setCurrentUserId] = useState<string>('');
+    const [currentUserName, setCurrentUserName] = useState<string>('');
+    const [currentUserUniversityId, setCurrentUserUniversityId] = useState<string>('');
     const [notice, setNotice] = useState<NoticeState>(null);
 
     const [hasTeam, setHasTeam] = useState(false);
@@ -92,6 +107,7 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
     const [reservations, setReservations] = useState<Reservation[]>([]);
     const [availableTeams, setAvailableTeams] = useState<Team[]>([]);
     const [invitations, setInvitations] = useState<Invitation[]>([]);
+    const [joinRequests, setJoinRequests] = useState<Invitation[]>([]);
 
     const [supervisedTeams, setSupervisedTeams] = useState<SupervisedTeamData[]>([]);
     const [selectedSupTeamId, setSelectedSupTeamId] = useState<number | null>(null);
@@ -116,22 +132,23 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
             try {
                 const session = await authRepository.getCurrentSession();
                 if (!session) return;
-                setCurrentUserId(session.user_id);
+                setCurrentUserId(session.id);
                 setCurrentUserName(session.full_name);
+                setCurrentUserUniversityId(session.university_id);
 
-                const inviteDtos = await teamsRepository.getPendingInvitations(session.user_id);
+                const inviteDtos = await teamsRepository.getPendingInvitations(session.id);
                 setInvitations(inviteDtos.map(invitationDtoToInvitation));
 
                 if (isSupervisor) {
                     const [supervisedDtos, unsupervisedDtos] = await Promise.all([
-                        teamsRepository.getSupervisedTeams(session.user_id),
+                        teamsRepository.getSupervisedTeams(session.id),
                         teamsRepository.getUnsupervisedTeams(),
                     ]);
                     const enriched: SupervisedTeamData[] = await Promise.all(
                         supervisedDtos.map(async (teamDto) => {
                             const [memberDtos, teamReservations] = await Promise.all([
-                                teamsRepository.getTeamMembers(teamDto.team_id),
-                                fetchTeamReservations(teamDto.team_id),
+                                teamsRepository.getTeamMembers(teamDto.id),
+                                fetchTeamReservations(teamDto.id),
                             ]);
                             return {
                                 team: teamDtoToTeam(teamDto),
@@ -144,7 +161,14 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
                     setUnsupervisedTeams(unsupervisedDtos.map(dto => teamDtoToTeam(dto)));
                     if (enriched.length > 0) setSelectedSupTeamId(enriched[0].team.team_id);
                 } else {
-                    const teamDto = await teamsRepository.getUserTeam(session.user_id);
+                    let teamDto = null;
+                    try {
+                        teamDto = await teamsRepository.getUserTeam(session.id);
+                    } catch {
+                        // Student has no team yet — .single() throws when 0 rows are found.
+                        // Treat this as the normal "no team" state, not a fatal error.
+                        teamDto = null;
+                    }
                     if (teamDto) {
                         const team = teamDtoToTeam(teamDto);
                         setMyTeamData(team);
@@ -153,8 +177,22 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
                             teamsRepository.getTeamMembers(team.team_id),
                             fetchTeamReservations(team.team_id),
                         ]);
-                        setTeamMembers(memberDtos.map(memberDtoToMember));
+                        const members = memberDtos.map(memberDtoToMember);
+                        setTeamMembers(members);
                         setReservations(teamReservations);
+
+                        // If the current user is the team leader, fetch pending join requests.
+                        const isLeader = members.some(
+                            m => m.user_id === session.id && m.team_role === 'Team Leader'
+                        );
+                        if (isLeader) {
+                            try {
+                                const jrDtos = await teamsRepository.getPendingJoinRequests(team.team_id);
+                                setJoinRequests(jrDtos.map(joinRequestDtoToInvitation));
+                            } catch {
+                                // Non-fatal — dashboard still works without join requests
+                            }
+                        }
                     } else {
                         const teamDtos = await teamsRepository.getAvailableTeams();
                         setAvailableTeams(teamDtos.map(dto => teamDtoToTeam(dto)));
@@ -200,6 +238,31 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
             showNotice({ type: 'info', message: 'Invitation declined.' });
         } catch {
             showNotice({ type: 'error', message: 'Failed to decline invitation.' });
+        }
+    };
+
+    const handleAcceptJoinRequest = async (applicantUserId: string) => {
+        if (!myTeamData) return;
+        try {
+            await teamsRepository.acceptJoinRequest(applicantUserId, myTeamData.team_id);
+            setJoinRequests(prev => prev.filter(r => r.sender_user_id !== applicantUserId));
+            // Refresh members so the new member appears in the panel immediately.
+            const memberDtos = await teamsRepository.getTeamMembers(myTeamData.team_id);
+            setTeamMembers(memberDtos.map(memberDtoToMember));
+            showNotice({ type: 'success', message: 'Join request accepted.' });
+        } catch {
+            showNotice({ type: 'error', message: 'Failed to accept join request.' });
+        }
+    };
+
+    const handleDeclineJoinRequest = async (applicantUserId: string) => {
+        if (!myTeamData) return;
+        try {
+            await teamsRepository.declineJoinRequest(applicantUserId, myTeamData.team_id);
+            setJoinRequests(prev => prev.filter(r => r.sender_user_id !== applicantUserId));
+            showNotice({ type: 'info', message: 'Join request declined.' });
+        } catch {
+            showNotice({ type: 'error', message: 'Failed to decline join request.' });
         }
     };
 
@@ -528,6 +591,18 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
                                 onDecline={handleDeclineInvite}
                             />
                         </div>
+
+                        {/* Join requests — only visible to team leaders */}
+                        {hasTeam && teamMembers.some(m => m.user_id === currentUserId && m.team_role === 'Team Leader') && (
+                            <div className="section-enter">
+                                <InvitationsFeed
+                                    title="Pending Join Requests"
+                                    invitations={joinRequests}
+                                    onAccept={handleAcceptJoinRequest}
+                                    onDecline={handleDeclineJoinRequest}
+                                />
+                            </div>
+                        )}
 
                         {hasTeam && myTeamData ? (
                             <div className="section-enter">
