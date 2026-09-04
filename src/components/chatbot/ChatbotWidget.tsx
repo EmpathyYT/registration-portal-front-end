@@ -40,7 +40,10 @@ export default function ChatbotWidget({ isOpen, onClose, userRole }: ChatbotWidg
         setIsLoading(true);
 
         try {
-            const url = new URL(window.location.origin + '/api/chat');
+            const baseUrl = import.meta.env.DEV 
+                ? window.location.origin 
+                : 'https://ai-service-production-43ee.up.railway.app';
+            const url = new URL(baseUrl + '/api/chat');
             url.searchParams.append('prompt', userMsg);
             url.searchParams.append('role', userRole.toUpperCase());
 
@@ -49,7 +52,7 @@ export default function ChatbotWidget({ isOpen, onClose, userRole }: ChatbotWidg
             const data = await response.text();
 
             setMessages(prev => [...prev, { id: Date.now(), sender: 'bot', text: data }]);
-        } catch (error) {
+        } catch {
             setMessages(prev => [...prev, { id: Date.now(), sender: 'bot', text: 'Sorry, I am having trouble connecting right now. Please try again later.' }]);
         } finally {
             setIsLoading(false);

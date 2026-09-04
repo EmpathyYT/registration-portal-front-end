@@ -250,6 +250,7 @@ export class SupabaseTeamsDataSource extends TeamsDataSource {
         }
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async acceptInvitation(_senderUserId: string, _receiverUserId: string): Promise<void> {
         const { error } = await supabase.rpc('accept_invitation', {
             p_sender_user_id: _senderUserId,
