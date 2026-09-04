@@ -223,21 +223,21 @@ export const MyTeamPanel: React.FC<MyTeamPanelProps> = ({
                         <h6 className={styles.docLabel}>Project Documentation</h6>
                         <span className={styles.docValue}>
                             {team.introduction_link
-                                ? 'Official document link is active.'
+                                ? 'Official document is active.'
                                 : canEditDoc
-                                    ? 'No document link yet — add one below.'
-                                    : 'No document link provided yet.'}
+                                    ? 'No document yet — upload one below.'
+                                    : 'No document provided yet.'}
                         </span>
                     </div>
                     <div className={styles.docActions}>
                         {team.introduction_link && docUrl && (
                             <a href={docUrl} target="_blank" rel="noreferrer" className={styles.openLinkBtn}>
-                                Open Link
+                                Open Document
                             </a>
                         )}
                         {canEditDoc && (
                             <button onClick={onUpdateDoc} className={styles.editLinkBtn}>
-                                {team.introduction_link ? 'Edit Link' : 'Add Link'}
+                                {team.introduction_link ? 'Edit Document' : 'Upload Document'}
                             </button>
                         )}
                     </div>

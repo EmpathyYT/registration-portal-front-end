@@ -3,6 +3,7 @@ import type { Team, TeamMember, Invitation, Reservation } from '../types/project
 import type { UserRole } from '../App';
 import { authRepository } from '../features/auth/repositories/auth_repository';
 import { teamsRepository } from '../features/teams/repositories/teams_repository';
+import { coursesRepository } from '../features/courses/repositories/courses_repository';
 import { reservationsRepository } from '../features/reservations/repositories/reservations_repository';
 import { supabase } from '../core/supabaseClient';
 
@@ -120,6 +121,7 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
     const [currentUserId, setCurrentUserId] = useState<string>('');
     const [currentUserName, setCurrentUserName] = useState<string>('');
     const [currentUserUniversityId, setCurrentUserUniversityId] = useState<string>('');
+    const [currentUserCredits, setCurrentUserCredits] = useState<number | undefined>(undefined);
     const [notice, setNotice] = useState<NoticeState>(null);
 
     const [hasTeam, setHasTeam] = useState(false);
@@ -159,6 +161,40 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
 
                 const inviteDtos = await teamsRepository.getPendingInvitations(session.id);
                 setInvitations(inviteDtos.map(invitationDtoToInvitation));
+
+                if (!isSupervisor) {
+                    try {
+                        const [allCourses, studentEnrollments] = await Promise.all([
+                            coursesRepository.getAvailableCourses(),
+                            coursesRepository.getStudentSchedule(session.id)
+                        ]);
+                        if (studentEnrollments.length > 0) {
+                            const sectionPromises = allCourses.map(c => coursesRepository.getCourseSections(c.id));
+                            const allSectionGroups = await Promise.all(sectionPromises);
+                            
+                            const sectionToCourseId = new Map<number, number>();
+                            allCourses.forEach((c, i) => {
+                                allSectionGroups[i].forEach(s => {
+                                    sectionToCourseId.set(s.id, c.id);
+                                });
+                            });
+                            
+                            let credits = 0;
+                            const courseIdToCredits = new Map(allCourses.map(c => [c.id, c.credits]));
+                            studentEnrollments.forEach(e => {
+                                const cId = sectionToCourseId.get(e.semester_course_id);
+                                if (cId && courseIdToCredits.has(cId)) {
+                                    credits += courseIdToCredits.get(cId)!;
+                                }
+                            });
+                            setCurrentUserCredits(credits);
+                        } else {
+                            setCurrentUserCredits(0);
+                        }
+                    } catch (err) {
+                        console.error('Failed to fetch student credits', err);
+                    }
+                }
 
                 if (isSupervisor) {
                     const [supervisedDtos, unsupervisedDtos] = await Promise.all([
@@ -544,6 +580,9 @@ export default function ProjectDashboard({ onSwitchPage, onLogout, isDark, onTog
                 isDark={isDark}
                 onToggleDark={onToggleDark}
                 userRole={userRole}
+                userName={currentUserName}
+                userUniId={currentUserUniversityId}
+                userCredits={currentUserCredits}
             />
             <FloatingNotice notice={notice} />
 

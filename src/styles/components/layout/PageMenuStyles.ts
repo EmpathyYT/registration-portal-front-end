@@ -20,4 +20,7 @@ export const styles = {
     switchIcon: 'me-2',
     logoutBtn: 'btn text-decoration-none text-danger w-100 text-start px-3 py-2 pressable-btn menu-action fw-semibold menu-item-btn',
     logoutIcon: 'me-2',
+    userInfoWrap: 'd-none d-lg-flex flex-column align-items-end me-3 user-info-wrap',
+    userName: 'fw-bold mb-0 user-info-name',
+    userDetails: 'user-info-details',
 };

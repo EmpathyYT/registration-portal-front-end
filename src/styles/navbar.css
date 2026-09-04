@@ -87,3 +87,16 @@
     transition: transform 0.28s var(--ease-spring), box-shadow 0.2s ease;
 }
 .dark-toggle-pill.active .dark-toggle-thumb { transform: translateX(16px); }
+
+/* ─── USER INFO ─────────────────────────────────────────────── */
+.user-info-wrap {
+    font-size: 0.85rem;
+    line-height: 1.25;
+}
+.user-info-name {
+    color: var(--text-main);
+}
+.user-info-details {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
