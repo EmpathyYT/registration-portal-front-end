@@ -12,7 +12,7 @@ export class SupabaseAuthDataSource extends AuthDataSource {
     }
 
     async login(_uniId: string, _password: string): Promise<UserDto> {
-        const { data: _ , error } = await supabase.auth.signInWithPassword({
+        const { error } = await supabase.auth.signInWithPassword({
             email: this.emailBuilder(_uniId),
             password: _password,
         });

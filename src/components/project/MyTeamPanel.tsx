@@ -54,6 +54,7 @@ export const MyTeamPanel: React.FC<MyTeamPanelProps> = ({
 
     // Resolve the signed URL whenever the stored path changes
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (!team.introduction_link) { setDocUrl(null); return; }
         getDocUrl(team.introduction_link).then(setDocUrl);
     }, [team.introduction_link]);
@@ -73,6 +74,7 @@ export const MyTeamPanel: React.FC<MyTeamPanelProps> = ({
 
     useEffect(() => {
         if (isInvitingSupervisor) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             ensureSupervisorsLoaded();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
