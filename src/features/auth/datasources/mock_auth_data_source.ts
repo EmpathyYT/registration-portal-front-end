@@ -19,13 +19,13 @@ export class MockAuthDataSource extends AuthDataSource {
 
         this.currentUser = uniId === 'teacher1'
             ? new UserDto({
-                user_id: 'teacher1',
+                id: 'teacher1',
                 full_name: 'Dr. Rania Mahmoud',
                 university_id: uniId,
                 role: 'teacher',
             })
             : new UserDto({
-                user_id: 'user1',
+                id: 'user1',
                 full_name: 'Ammar Ahmad Sameed',
                 university_id: uniId,
                 role: 'student',
