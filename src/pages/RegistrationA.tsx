@@ -54,6 +54,8 @@ const hasTimeConflict = (days1: string, time1: string, days2: string, time2: str
 export default function RegistrationA({ onSwitchPage, onLogout, isDark, onToggleDark }: RegistrationAProps) {
     const [notice, setNotice] = useState<NoticeState>(null);
     const [currentUserId, setCurrentUserId] = useState('');
+    const [currentUserName, setCurrentUserName] = useState('');
+    const [currentUserUniversityId, setCurrentUserUniversityId] = useState('');
     const [loading, setLoading] = useState(true);
 
     const [availableCourses, setAvailableCourses] = useState<Course[]>([]);
@@ -76,6 +78,8 @@ export default function RegistrationA({ onSwitchPage, onLogout, isDark, onToggle
                 const session = await authRepository.getCurrentSession();
                 if (!session) return;
                 setCurrentUserId(session.id);
+                setCurrentUserName(session.full_name);
+                setCurrentUserUniversityId(session.university_id);
 
                 const [courseDtos, enrollmentDtos] = await Promise.all([
                     coursesRepository.getAvailableCourses(),
@@ -325,6 +329,9 @@ export default function RegistrationA({ onSwitchPage, onLogout, isDark, onToggle
                 isDark={isDark}
                 onToggleDark={onToggleDark}
                 userRole="student"
+                userName={currentUserName}
+                userUniId={currentUserUniversityId}
+                userCredits={registeredCourses.reduce((sum, c) => sum + c.credits, 0)}
             />
             <FloatingNotice notice={notice} />
 

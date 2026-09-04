@@ -10,9 +10,12 @@ type PageMenuProps = {
     switchDisabled?: boolean;
     onLogout?: () => void;
     userRole?: string;
+    userName?: string;
+    userUniId?: string;
+    userCredits?: number;
 };
 
-export default function PageMenu({ switchLabel, onSwitchPage, switchDisabled, onLogout, isDark, onToggleDark, userRole }: PageMenuProps) {
+export default function PageMenu({ switchLabel, onSwitchPage, switchDisabled, onLogout, isDark, onToggleDark, userRole, userName, userUniId, userCredits }: PageMenuProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [isVisible, setIsVisible] = useState(true);
     const [isChatOpen, setIsChatOpen] = useState(false);
@@ -58,6 +61,14 @@ export default function PageMenu({ switchLabel, onSwitchPage, switchDisabled, on
 
                 <div className={styles.menuWrap} ref={menuRef}>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
+                        {userName && userUniId && (
+                            <div className={styles.userInfoWrap}>
+                                <span className={styles.userName}>{userName}</span>
+                                <span className={styles.userDetails}>
+                                    {userRole === 'supervisor' ? 'Professor' : 'Student'} • ID: {userUniId}{userCredits !== undefined && ` • ${userCredits} Credits`}
+                                </span>
+                            </div>
+                        )}
                         {userRole && (
                             <button type="button" className={styles.chatBtn} onClick={() => setIsChatOpen(!isChatOpen)}>
                                 <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
